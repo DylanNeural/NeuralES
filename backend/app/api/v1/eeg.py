@@ -11,8 +11,8 @@ async def eeg_stream(ws: WebSocket):
     await ws.accept()
 
     # Chemin dataset (adapter si tu bouges les fichiers)
-    base = Path(__file__).resolve().parents[3]  # .../backend/app
-    psg = base.parent / "data" / "sleep_edf" / "SC4001E0-PSG.edf"
+    base = Path(__file__).resolve().parents[2]  # .../backend/app
+    psg = base / "data" / "sleep_edf" / "SC4001E0-PSG.edf"
 
     # Si tu gardes les EDF directement dans backend/ (comme sur ton screen) :
     # psg = base.parent / "SC4001E0-PSG.edf"
@@ -20,7 +20,7 @@ async def eeg_stream(ws: WebSocket):
     sfreq, channels, data = load_sleep_edf(psg)
 
     try:
-        for t0, samples in iter_chunks(data, sfreq, chunk_seconds=1.0):
+        for t0, samples in iter_chunks(data, sfreq, chunk_seconds=0.1):
             payload = {
                 "t0": t0,
                 "sfreq": sfreq,
@@ -31,6 +31,6 @@ async def eeg_stream(ws: WebSocket):
                 "alerts": [],
             }
             await ws.send_json(payload)
-            await asyncio.sleep(1.0)  # simule temps réel
+            await asyncio.sleep(0.1)  # simule temps réel
     except WebSocketDisconnect:
         return

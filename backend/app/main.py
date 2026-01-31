@@ -1,9 +1,50 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import JWTError, jwt
 import asyncio
 from pathlib import Path
 import numpy as np
 
+from .api.v1.auth import router as auth_router, get_current_user
+from .api.v1.eeg import router as eeg_router
+from .api.v1.acquisition import router as acquisition_router
+
 app = FastAPI(title="NeuralES API", version="0.1.0")
+
+# Configuration CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # URLs du frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Inclure les routes d'authentification
+app.include_router(auth_router)
+
+# Inclure les routes EEG
+app.include_router(eeg_router)
+
+# Inclure les routes d'acquisition
+app.include_router(acquisition_router)
+
+# Configuration JWT (dupliqué de auth.py pour simplicité)
+SECRET_KEY = "your-secret-key-change-this-in-production"
+ALGORITHM = "HS256"
+security = HTTPBearer()
+
+async def get_current_user_ws(credentials: str) -> dict:
+    """Vérifie le token JWT pour WebSocket"""
+    try:
+        payload = jwt.decode(credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise Exception("Invalid token")
+        return {"email": email}
+    except JWTError:
+        raise Exception("Invalid token")
 
 # Stream très fluide
 CHUNK_SECONDS = 0.05          # 50 ms
@@ -86,7 +127,19 @@ def fatigue_score_from_window(window_2d: np.ndarray, sfreq: float) -> int:
 
 
 @app.websocket("/eeg/stream")
-async def eeg_stream(ws: WebSocket):
+async def eeg_stream(ws: WebSocket, token: str = None):
+    # Authentification WebSocket (obligatoire)
+    if not token:
+        await ws.send_json({"error": "Token d'authentification requis"})
+        await ws.close(code=4001)
+        return
+    try:
+        await get_current_user_ws(token)
+    except Exception:
+        await ws.send_json({"error": "Token d'authentification invalide"})
+        await ws.close(code=4001)
+        return
+
     await ws.accept()
 
     psg = Path(__file__).resolve().parent / "data" / "sleep_edf" / "SC4001E0-PSG.edf"
