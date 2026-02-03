@@ -1,0 +1,103 @@
+/* --- Base --- */
+* {
+  font-family: "Inter","Segoe UI",Arial;
+  font-size: 14px;
+  color: #111827;
+}
+#RightPane { background: #F3F4F6; }
+#ContentStack { background: #F3F4F6; }
+
+/* --- Sidebar --- */
+#Sidebar {
+  background: #0F172A;
+  min-width: 260px;
+  max-width: 260px;
+}
+#SidebarTitle {
+  color: #F9FAFB;
+  font-size: 20px;
+  font-weight: 600;
+  padding: 6px 0;
+}
+#SidebarButton {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: transparent;
+  color: #E5E7EB;
+}
+#SidebarButton:hover { background: rgba(255,255,255,0.08); }
+#SidebarButton[active="true"] { background: rgba(255,255,255,0.14); }
+
+/* --- TopBar --- */
+#TopBar {
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
+}
+#TopBarUser { color: #6B7280; }
+
+/* --- Buttons --- */
+#PrimaryButton {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+#PrimaryButton:hover { background: #1D4ED8; }
+
+#SecondaryButton {
+  background: #FFFFFF;
+  color: #111827;
+  border: 1px solid #D1D5DB;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+#SecondaryButton:hover { background: #F9FAFB; }
+
+#DangerButton {
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+#DangerButton:hover { background: #B91C1C; }
+
+/* --- Inputs --- */
+QLineEdit, QComboBox, QTextEdit {
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
+  border: 1px solid #2563EB;
+}
+
+/* --- Cards --- */
+#CardFrame {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+}
+
+/* --- Tables --- */
+QTableWidget {
+  border: none;
+  background: #FFFFFF;
+}
+QHeaderView::section {
+  background: #E5E7EB;
+  padding: 8px;
+  font-weight: 600;
+  border: none;
+}
+QTableWidget::item {
+  padding: 6px;
+}
+QTableWidget::item:selected {
+  background: rgba(37,99,235,0.12);
+}
