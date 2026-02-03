@@ -5,10 +5,13 @@ mne
 numpy
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
 =======
+=======
+>>>>>>> parent of ca6e687 (vweb + feature bonus)
 =======
 >>>>>>> parent of ca6e687 (vweb + feature bonus)
 
