@@ -1,174 +1,175 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import asyncio
-from pathlib import Path
-import numpy as np
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
-app = FastAPI(title="NeuralES API", version="0.1.0")
+from app.config import settings
+from app.api import organisations_router, eeg_router, health_router
 
-# Stream très fluide
-CHUNK_SECONDS = 0.05          # 50 ms
-FATIGUE_WINDOW_SECONDS = 10.0 # fenêtre glissante pour calcul
+# Créer l'app FastAPI
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    debug=settings.debug,
+)
 
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/health", tags=["meta"])
-def health():
-    return {"status": "ok"}
-
-
-def load_sleep_edf(psg_path: Path, picks=None):
-    import mne
-
-    raw = mne.io.read_raw_edf(str(psg_path), preload=True, verbose=False)
-
-    if picks is None:
-        candidates = ["Fpz-Cz", "Pz-Oz"]
-        picks = [ch for ch in candidates if ch in raw.ch_names]
-        if not picks:
-            picks = raw.ch_names[:2]
-
-    raw = raw.copy().pick_channels(picks)
-    sfreq = float(raw.info["sfreq"])
-    data = raw.get_data()  # (n_channels, n_samples)
-    channels = raw.ch_names
-    return sfreq, channels, data
-
-
-def bandpower_fft(x: np.ndarray, sfreq: float, fmin: float, fmax: float) -> float:
-    """
-    Puissance de bande via FFT (rapide, stable).
-    x: (n_samples,) float
-    """
-    x = np.asarray(x, dtype=np.float32)
-    if x.size < 16:
-        return 0.0
-
-    # detrend simple
-    x = x - float(np.mean(x))
-
-    n = x.size
-    win = np.hanning(n).astype(np.float32)
-    xw = x * win
-
-    freqs = np.fft.rfftfreq(n, d=1.0 / sfreq)
-    spec = np.abs(np.fft.rfft(xw)) ** 2  # power spectrum (non normalisé)
-
-    band = (freqs >= fmin) & (freqs < fmax)
-    if not np.any(band):
-        return 0.0
-
-    return float(np.mean(spec[band]))
-
-
-def fatigue_score_from_window(window_2d: np.ndarray, sfreq: float) -> int:
-    """
-    Score fatigue 0-100 basé sur ratio theta/alpha sur la fenêtre.
-    window_2d: shape (n_channels, n_samples_window)
-    """
-    if window_2d.size == 0:
-        return 0
-
-    # On moyenne les canaux (simple + robuste)
-    x = np.mean(window_2d, axis=0)
-
-    theta = bandpower_fft(x, sfreq, 4.0, 8.0)
-    alpha = bandpower_fft(x, sfreq, 8.0, 12.0) + 1e-9
-
-    ratio = theta / alpha  # fatigue ↑ quand ratio ↑ (heuristique)
-
-    # Mapping ratio -> score (borné et lissé)
-    # Ajuste ces bornes si besoin
-    r_min, r_max = 0.5, 3.0
-    norm = (ratio - r_min) / (r_max - r_min)
-    norm = max(0.0, min(1.0, norm))
-    score = int(round(norm * 100))
-
-    return score
-
-
-@app.websocket("/eeg/stream")
-async def eeg_stream(ws: WebSocket):
-    await ws.accept()
-
-    psg = Path(__file__).resolve().parent / "data" / "sleep_edf" / "SC4001E0-PSG.edf"
-    if not psg.exists():
-        await ws.send_json({"error": f"EDF introuvable: {psg}"})
-        await ws.close()
-        return
-
-    try:
-        sfreq, channels, data = load_sleep_edf(psg)
-    except Exception as e:
-        await ws.send_json({"error": f"Erreur chargement EDF: {type(e).__name__}: {e}"})
-        await ws.close()
-        return
-
-    # Ring buffer pour fenêtre fatigue
-    win_size = int(FATIGUE_WINDOW_SECONDS * sfreq)
-    n_ch = data.shape[0]
-    buf = np.zeros((n_ch, win_size), dtype=np.float32)
-    w_idx = 0
-    filled = 0
-    t0 = 0.0
-
-    # chunk size
-    chunk_size = int(round(sfreq * CHUNK_SECONDS))
-    n_samples = data.shape[1]
-
-    try:
-        for start in range(0, n_samples, chunk_size):
-            end = min(start + chunk_size, n_samples)
-            chunk = data[:, start:end].astype(np.float32)  # (n_ch, n_chunk)
-
-            # push chunk into fatigue window buffer (ring)
-            n_chunk = chunk.shape[1]
-            if n_chunk == 0:
-                continue
-
-            # write with wrap
-            e = w_idx + n_chunk
-            if e <= win_size:
-                buf[:, w_idx:e] = chunk
-            else:
-                first = win_size - w_idx
-                second = n_chunk - first
-                buf[:, w_idx:win_size] = chunk[:, :first]
-                buf[:, 0:second] = chunk[:, first:first + second]
-            w_idx = (w_idx + n_chunk) % win_size
-            filled = min(win_size, filled + n_chunk)
-
-            # get window in chronological order for FFT
-            if filled < win_size:
-                window = buf[:, :filled]
-            else:
-                # reconstruct [w_idx .. end] + [0 .. w_idx)
-                window = np.concatenate([buf[:, w_idx:], buf[:, :w_idx]], axis=1)
-
-            score = fatigue_score_from_window(window, sfreq)
-
-            payload = {
-                "t0": t0,
-                "sfreq": sfreq,
-                "channels": channels,
-                "samples": chunk.tolist(),       # chunk courant (petit)
-                "fatigue": score,                # ✅ score temps réel
-                "quality": "Bonne",
-                "alerts": [],
-                "chunk_seconds": CHUNK_SECONDS,
-                "window_seconds": FATIGUE_WINDOW_SECONDS,
+# Page d'accueil
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    return """
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>NeuralES Backend</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
             }
+            
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            
+            .container {
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                padding: 60px;
+                text-align: center;
+                max-width: 600px;
+            }
+            
+            .logo {
+                font-size: 60px;
+                margin-bottom: 20px;
+            }
+            
+            h1 {
+                color: #333;
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            
+            .subtitle {
+                color: #666;
+                font-size: 1.1em;
+                margin-bottom: 40px;
+            }
+            
+            .links {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            a {
+                display: inline-block;
+                padding: 15px 30px;
+                margin: 10px;
+                border-radius: 10px;
+                text-decoration: none;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                border: 2px solid transparent;
+            }
+            
+            .btn-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+            
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            }
+            
+            .btn-secondary {
+                background: #f0f0f0;
+                color: #333;
+                border: 2px solid #667eea;
+            }
+            
+            .btn-secondary:hover {
+                background: #667eea;
+                color: white;
+                transform: translateY(-2px);
+            }
+            
+            .info {
+                background: #f8f9fa;
+                border-left: 4px solid #667eea;
+                padding: 20px;
+                margin-top: 40px;
+                text-align: left;
+                border-radius: 10px;
+            }
+            
+            .info h3 {
+                color: #667eea;
+                margin-bottom: 10px;
+            }
+            
+            .info p {
+                color: #666;
+                line-height: 1.6;
+                margin: 8px 0;
+            }
+            
+            .version {
+                color: #999;
+                font-size: 0.9em;
+                margin-top: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo">🧠</div>
+            <h1>NeuralES</h1>
+            <p class="subtitle">Bienvenue sur le backend NeuralES</p>
+            
+            <div class="links">
+                <a href="/docs" class="btn-primary">📖 Documentation API (Swagger)</a>
+                <a href="/redoc" class="btn-secondary">📚 ReDoc Documentation</a>
+            </div>
+            
+            <div class="info">
+                <h3>🚀 Démarrage Rapide</h3>
+                <p><strong>API Base:</strong> /api/v1</p>
+                <p><strong>Status:</strong> <span style="color: #28a745;">✓ En ligne</span></p>
+                <p><strong>Documentation:</strong> Consultez /docs pour explorer les endpoints</p>
+            </div>
+            
+            <p class="version">Version """ + settings.app_version + """</p>
+        </div>
+    </body>
+    </html>
+    """
 
-            await ws.send_json(payload)
-            await asyncio.sleep(CHUNK_SECONDS)
+# Enregistrer les routers
+app.include_router(health_router)
+app.include_router(organisations_router)
+app.include_router(eeg_router)
 
-            t0 += (end - start) / sfreq
-
-            if end >= n_samples:
-                break
-
-    except WebSocketDisconnect:
-        pass
-    except Exception as e:
-        try:
-            await ws.send_json({"error": f"Erreur stream: {type(e).__name__}: {e}"})
-        except Exception:
-            pass
