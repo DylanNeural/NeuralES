@@ -1,19 +1,22 @@
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://user:pass@localhost:5432/neurales")
+from app.config import settings
 
 engine = create_engine(
-    DATABASE_URL,
+    settings.database_url,
     pool_pre_ping=True,
+    echo=settings.database_echo,
 )
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
+
 def get_db() -> Session:
+    """Dépendance FastAPI pour injecter une session DB"""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
