@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex bg-background">
     <!-- Sidebar -->
-    <aside class="w-[260px] bg-primary-dark text-white flex flex-col py-8 px-6 rounded-tr-3xl rounded-br-3xl shadow-xl">
+    <aside class="sticky top-0 h-screen w-[260px] bg-primary-dark text-white flex flex-col py-8 px-6 rounded-tr-3xl rounded-br-3xl shadow-xl overflow-y-auto">
       <div class="flex items-center gap-3 mb-10">
         <img src="/logo.svg" alt="Logo" class="h-10 w-10 rounded-2xl bg-white p-1 shadow" />
         <div>
