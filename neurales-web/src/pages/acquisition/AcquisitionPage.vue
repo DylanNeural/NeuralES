@@ -195,7 +195,7 @@
       <div class="card-header">
         <h2 class="card-title">Signaux EEG en temps réel</h2>
       </div>
-      <EEGChartCanvas :is-active="isRunning" />
+      <EEGChartCanvas :is-active="isRunning" :selected-electrodes="selectedElectrodes" />
     </AppCard>
   </div>
 </template>
