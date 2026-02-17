@@ -1,5 +1,35 @@
-# Vue 3 + TypeScript + Vite
+# NeuralES Web
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Application web Vue 3 + Vite pour l'interface NeuralES.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Prerequis
+
+- Node.js 18+
+- npm
+
+## Lancer en dev
+
+```powershell
+npm install
+npm run dev
+```
+
+Le serveur tourne par defaut sur http://localhost:5173.
+
+## Script Windows
+
+`run.ps1` (ou `run.bat`) :
+- cree un `.env` si besoin
+- installe les dependances
+- demarre Vite
+
+## Build
+
+```powershell
+npm run build
+npm run preview
+```
+
+## Assets publics
+
+Les fichiers statiques (GLB, SVG, JSON) sont dans [public/](public/).

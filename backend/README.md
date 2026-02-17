@@ -55,17 +55,7 @@ app/
 
 ## 🚀 Installation Rapide
 
-### Option 1: Script automatique (Windows)
-
-```powershell
-# PowerShell
-.\setup.ps1
-
-# CMD
-setup.bat
-```
-
-### Option 2: Installation manuelle
+### Installation manuelle
 
 ```bash
 # 1. Créer environnement virtuel
@@ -90,6 +80,11 @@ python check_imports.py
 # 5. Lancer le serveur
 python -m uvicorn app.main:app --reload
 ```
+
+### Scripts de lancement (Windows)
+
+Les scripts `run.ps1` et `run.bat` demarrent le serveur et nettoient les caches a l'arret.
+Ils supposent que le venv est deja cree et que PostgreSQL est dans le PATH.
 
 ## 📡 Endpoints API
 
