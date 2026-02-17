@@ -69,14 +69,21 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Frontal</span>
-              <span class="preset-count">14 électrodes</span>
+              <span class="preset-count">6 électrodes</span>
             </button>
             <button class="preset-btn" @click="applyPreset('motor')">
               <svg class="preset-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               <span>Moteur</span>
-              <span class="preset-count">9 électrodes</span>
+              <span class="preset-count">4 électrodes</span>
+            </button>
+            <button class="preset-btn" @click="applyPreset('parietal')">
+              <svg class="preset-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Pariétal</span>
+              <span class="preset-count">4 électrodes</span>
             </button>
             <button class="preset-btn" @click="applyPreset('occipital')">
               <svg class="preset-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,7 +91,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
               <span>Occipital</span>
-              <span class="preset-count">12 électrodes</span>
+              <span class="preset-count">2 électrodes</span>
             </button>
             <button class="preset-btn preset-all" @click="selectAll">
               <svg class="preset-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -198,12 +205,29 @@ import { computed, ref } from "vue";
 import AppCard from '@/components/ui/AppCard.vue';
 import Brain3D from '@/components/Brain3D.vue';
 import EEGChartCanvas from '@/components/EEGChartCanvas.vue';
-import { ELECTRODES_ULTRACORTEX_MARK_IV } from "@/data/electrodes";
 import { useAcquisitionStore } from "@/stores/acquisition.store";
 
 const acquisition = useAcquisitionStore();
 
-const electrodes = ELECTRODES_ULTRACORTEX_MARK_IV;
+// 16 electrodes from casque_brain_electrodes.glb model
+const electrodes = [
+  { id: "P4" },
+  { id: "O2" },
+  { id: "P8" },
+  { id: "O1" },
+  { id: "P7" },
+  { id: "T7" },
+  { id: "F7" },
+  { id: "Fp1" },
+  { id: "Fp2" },
+  { id: "F4" },
+  { id: "F8" },
+  { id: "T8" },
+  { id: "C4" },
+  { id: "F3" },
+  { id: "P3" },
+  { id: "C3" },
+];
 const selectedElectrodes = computed(() => acquisition.selectedElectrodes);
 const selectedSet = computed(() => new Set(acquisition.selectedElectrodes));
 const isRunning = computed(() => acquisition.isRunning);
@@ -212,9 +236,10 @@ const qualityByElectrode = computed(() => acquisition.qualityByElectrode);
 const streamStatus = computed(() => acquisition.streamStatus);
 
 const presetMap: Record<string, string[]> = {
-  frontal: ["Fp1", "Fpz", "Fp2", "AF3", "AF4", "F7", "F5", "F3", "F1", "Fz", "F2", "F4", "F6", "F8"],
-  motor: ["C5", "C3", "C1", "Cz", "C2", "C4", "C6", "T7", "T8"],
-  occipital: ["O1", "Oz", "O2", "P7", "P5", "P3", "P1", "Pz", "P2", "P4", "P6", "P8"],
+  frontal: ["Fp1", "Fp2", "F3", "F4", "F7", "F8"],
+  motor: ["C3", "C4", "T7", "T8"],
+  parietal: ["P3", "P4", "P7", "P8"],
+  occipital: ["O1", "O2"],
 };
 
 function toggleElectrode(id: string) {

@@ -92,6 +92,9 @@ function setupScene(el: HTMLDivElement) {
         return mat.clone();
       };
 
+      let electrodeCount = 0;
+      const electrodeNames: string[] = [];
+
       root.traverse((obj) => {
         if ((obj as THREE.Mesh).isMesh) {
           const mesh = obj as THREE.Mesh;
@@ -100,6 +103,9 @@ function setupScene(el: HTMLDivElement) {
           if (name === "Casque") {
             mesh.material = helmetMat;
           } else if (name.startsWith("Electrode_")) {
+            electrodeCount++;
+            const cleanName = name.replace("Electrode_", "");
+            electrodeNames.push(cleanName);
             const inactiveMat = cloneMaterial(mesh.material as THREE.Material);
             const activeMat = cloneMaterial(electrodeMat);
             electrodeMaterials.set(name, { active: activeMat, inactive: inactiveMat });
@@ -152,6 +158,9 @@ function setupScene(el: HTMLDivElement) {
           }
         }
       });
+
+      console.log(`[Dev] Total electrodes found: ${electrodeCount}`);
+      console.log("[Dev] Electrode names:", electrodeNames);
     },
     undefined,
     (error) => {
