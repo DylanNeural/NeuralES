@@ -62,6 +62,8 @@ const route = useRoute();
 const pageTitle = computed(() => {
   if (route.path.startsWith("/acquisition")) return "Acquisition";
   if (route.path.startsWith("/results")) return "Résultats";
+  if (route.path.startsWith("/patients/new")) return "Creation d'un nouveau patient";
+  if (route.path.startsWith("/patients")) return "Patients";
   return "Tableau de bord";
 });
 
