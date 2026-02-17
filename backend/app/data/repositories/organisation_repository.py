@@ -3,7 +3,7 @@ from sqlalchemy import select, delete
 
 from app.application.ports.organisation_repository import OrganisationRepository
 from app.domain.entities.organisation import Organisation
-from app.data.repository_sql.organisation_model import OrganisationModel
+from app.data.models.organisation_model import OrganisationModel
 
 
 def _to_entity(m: OrganisationModel) -> Organisation:

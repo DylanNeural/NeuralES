@@ -9,6 +9,8 @@ app/
 ├── api/                           ← Interface utilisateur
 │   ├── routes/                    ← Endpoints FastAPI
 │   │   ├── organisations.py       └─ CRUD organisations
+│   │   ├── auth.py                 └─ Authentification
+│   │   ├── acquisition.py          └─ Acquisition EEG
 │   │   ├── eeg.py                 └─ WebSocket streaming EEG
 │   │   └── health.py              └─ Healthcheck
 │   └── schemas/                   ← Schémas Pydantic (validation)
@@ -93,6 +95,14 @@ Ils supposent que le venv est deja cree et que PostgreSQL est dans le PATH.
 GET /health
 ```
 
+### Auth
+```http
+POST /auth/login
+POST /auth/refresh
+POST /auth/logout
+GET  /auth/me
+```
+
 ### Organisations (CRUD)
 ```http
 POST   /organisations                # Créer
@@ -100,6 +110,13 @@ GET    /organisations                # Lister
 GET    /organisations/{id}           # Récupérer
 PATCH  /organisations/{id}           # Mettre à jour
 DELETE /organisations/{id}           # Supprimer
+```
+
+### Acquisition
+```http
+POST /acquisition/start
+POST /acquisition/stop
+GET  /acquisition/{session_id}/live
 ```
 
 **Exemple POST:**

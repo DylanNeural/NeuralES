@@ -7,6 +7,8 @@ app/
 ├── api/                    ← API FastAPI (routes/schemas)
 │   ├── routes/
 │   │   ├── organisations.py
+│   │   ├── acquisition.py
+│   │   ├── auth.py
 │   │   ├── eeg.py
 │   │   └── health.py
 │   ├── schemas/            ← Schémas Pydantic (validation API)
@@ -24,7 +26,7 @@ app/
 │
 ├── data/                   ← Persistance (implémentation)
 │   ├── repositories/
-│   ├── models/
+│   ├── models/             ← ORM SQLAlchemy
 │   ├── db.py
 │   └── sleep_edf/
 │
