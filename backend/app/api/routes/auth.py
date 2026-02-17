@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -55,8 +55,34 @@ def create_access_token(payload: dict) -> str:
     return jwt.encode(to_encode, settings.auth_secret_key, algorithm=settings.auth_algorithm)
 
 
+def create_refresh_token(payload: dict) -> str:
+    expires = datetime.now(timezone.utc) + timedelta(days=settings.auth_refresh_token_expire_days)
+    to_encode = {**payload, "exp": expires, "type": "refresh"}
+    return jwt.encode(to_encode, settings.auth_secret_key, algorithm=settings.auth_algorithm)
+
+
 def decode_token(token: str) -> dict:
     return jwt.decode(token, settings.auth_secret_key, algorithms=[settings.auth_algorithm])
+
+
+def set_refresh_cookie(response: Response, token: str) -> None:
+    max_age = settings.auth_refresh_token_expire_days * 24 * 60 * 60
+    response.set_cookie(
+        key=settings.auth_refresh_cookie_name,
+        value=token,
+        httponly=True,
+        secure=settings.auth_cookie_secure,
+        samesite=settings.auth_cookie_samesite,
+        max_age=max_age,
+        path="/",
+    )
+
+
+def clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.auth_refresh_cookie_name,
+        path="/",
+    )
 
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
@@ -75,17 +101,61 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
 
 @router.post("/login", response_model=TokenOut)
-def login(payload: LoginIn):
+def login(payload: LoginIn, response: Response):
     if payload.email != settings.admin_email or not verify_admin_password(payload.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     user = build_admin_user()
-    token = create_access_token({
+    access_token = create_access_token({
         "sub": user["email"],
         "user_id": user["user_id"],
         "role": user.get("role"),
     })
-    return TokenOut(access_token=token)
+    refresh_token = create_refresh_token({
+        "sub": user["email"],
+        "user_id": user["user_id"],
+        "role": user.get("role"),
+    })
+    set_refresh_cookie(response, refresh_token)
+    return TokenOut(access_token=access_token)
+
+
+@router.post("/refresh", response_model=TokenOut)
+def refresh(request: Request, response: Response):
+    raw_token = request.cookies.get(settings.auth_refresh_cookie_name)
+    if not raw_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
+    try:
+        payload = decode_token(raw_token)
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    subject = payload.get("sub")
+    if subject != settings.admin_email:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
+
+    user = build_admin_user()
+    access_token = create_access_token({
+        "sub": user["email"],
+        "user_id": user["user_id"],
+        "role": user.get("role"),
+    })
+    refresh_token = create_refresh_token({
+        "sub": user["email"],
+        "user_id": user["user_id"],
+        "role": user.get("role"),
+    })
+    set_refresh_cookie(response, refresh_token)
+    return TokenOut(access_token=access_token)
+
+
+@router.post("/logout")
+def logout(response: Response):
+    clear_refresh_cookie(response)
+    return {"ok": True}
 
 
 @router.get("/me", response_model=UserOut)

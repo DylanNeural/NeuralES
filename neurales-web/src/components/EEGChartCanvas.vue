@@ -182,8 +182,7 @@ function draw() {
 function connectWebSocket() {
   const base = (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8000";
   const wsBase = String(base).replace(/^http/i, "ws");
-  const token = localStorage.getItem("access_token");
-  const wsUrl = token ? `${wsBase}/eeg/stream?token=${token}` : `${wsBase}/eeg/stream`;
+  const wsUrl = `${wsBase}/eeg/stream`;
 
   status.value = "connecting";
   ws = new WebSocket(wsUrl);

@@ -8,6 +8,15 @@ export async function login(payload: LoginRequest) {
   return data;
 }
 
+export async function refresh() {
+  const { data } = await http.post<LoginResponse>("/auth/refresh");
+  return data;
+}
+
+export async function logout() {
+  await http.post("/auth/logout");
+}
+
 export async function me() {
   const { data } = await http.get("/auth/me");
   return data;
