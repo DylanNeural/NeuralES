@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     auth_secret_key: str = os.getenv("AUTH_SECRET_KEY", "dev-secret-change-me")
     auth_algorithm: str = os.getenv("AUTH_ALGORITHM", "HS256")
     auth_access_token_expire_minutes: int = int(os.getenv("AUTH_ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
+    auth_refresh_token_expire_days: int = int(os.getenv("AUTH_REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+    auth_refresh_cookie_name: str = os.getenv("AUTH_REFRESH_COOKIE_NAME", "refresh_token")
+    auth_cookie_secure: bool = os.getenv("AUTH_COOKIE_SECURE", "False").lower() == "true"
+    auth_cookie_samesite: str = os.getenv("AUTH_COOKIE_SAMESITE", "lax")
+
+    cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
 
     admin_email: str = os.getenv("ADMIN_EMAIL", "admin@neurales.com")
     admin_password: str = os.getenv("ADMIN_PASSWORD", "admin123")

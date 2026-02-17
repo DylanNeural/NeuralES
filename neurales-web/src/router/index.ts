@@ -24,19 +24,12 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore();
 
   const isPublic = !!to.meta.public;
-  const hasToken = !!localStorage.getItem("access_token");
 
-  if (!isPublic && !hasToken) return "/login";
-
-  // au 1er chargement, si token => fetch /me
-  if (hasToken && !auth.isReady && !auth.user) {
-    try {
-      await auth.fetchMe();
-    } catch {
-      auth.logout();
-      if (!isPublic) return "/login";
-    }
+  if (!auth.isReady) {
+    await auth.initialize();
   }
+
+  if (!isPublic && !auth.isLogged) return "/login";
 });
 
 export default router;

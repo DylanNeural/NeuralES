@@ -1,6 +1,6 @@
 <template>
   <div class="acquisition-page">
-    <!-- Header -->
+    <!-- En-tete : titre + controles de session -->
     <div class="page-header">
       <div>
         <h1 class="page-title">Acquisition EEG en temps réel</h1>
@@ -31,9 +31,9 @@
       </div>
     </div>
 
-    <!-- Main Grid -->
+    <!-- Grille principale : visualisation 3D + controles -->
     <div class="main-grid">
-      <!-- 3D Viewer -->
+      <!-- Visualisation 3D : modele de casque interactif -->
       <AppCard class="viewer-card">
         <div class="card-header">
           <h2 class="card-title">Visualisation 3D</h2>
@@ -56,9 +56,9 @@
         </div>
       </AppCard>
 
-      <!-- Controls Panel -->
+      <!-- Panneau de controle : presets + liste d'electrodes + info session -->
       <div class="controls-panel">
-        <!-- Presets -->
+        <!-- Presets : selections rapides -->
         <AppCard>
           <div class="card-header">
             <h2 class="card-title">Configuration rapide</h2>
@@ -108,7 +108,7 @@
           </div>
         </AppCard>
 
-        <!-- Electrode Selection -->
+        <!-- Selection d'electrodes : bascules manuelles -->
         <AppCard>
           <div class="card-header">
             <h2 class="card-title">Électrodes</h2>
@@ -127,7 +127,7 @@
           </div>
         </AppCard>
 
-        <!-- Session Info -->
+        <!-- Infos session : metadonnees + pastilles selectionnees -->
         <AppCard>
           <div class="card-header">
             <h2 class="card-title">Session en cours</h2>
@@ -164,7 +164,7 @@
       </div>
     </div>
 
-    <!-- Signal Quality -->
+    <!-- Qualite du signal : barres par electrode -->
     <AppCard v-if="selectedElectrodes.length > 0">
       <div class="card-header">
         <h2 class="card-title">Qualité du signal</h2>
@@ -190,7 +190,7 @@
       </div>
     </AppCard>
 
-    <!-- EEG Chart -->
+    <!-- Graphique EEG : tracé temps reel -->
     <AppCard>
       <div class="card-header">
         <h2 class="card-title">Signaux EEG en temps réel</h2>
@@ -228,6 +228,7 @@ const electrodes = [
   { id: "P3" },
   { id: "C3" },
 ];
+// Etat reactif derive du store pour l'UI
 const selectedElectrodes = computed(() => acquisition.selectedElectrodes);
 const selectedSet = computed(() => new Set(acquisition.selectedElectrodes));
 const isRunning = computed(() => acquisition.isRunning);
@@ -235,6 +236,7 @@ const sessionId = computed(() => acquisition.sessionId);
 const qualityByElectrode = computed(() => acquisition.qualityByElectrode);
 const streamStatus = computed(() => acquisition.streamStatus);
 
+// Groupes d'electrodes pour selection rapide
 const presetMap: Record<string, string[]> = {
   frontal: ["Fp1", "Fp2", "F3", "F4", "F7", "F8"],
   motor: ["C3", "C4", "T7", "T8"],
@@ -242,32 +244,39 @@ const presetMap: Record<string, string[]> = {
   occipital: ["O1", "O2"],
 };
 
+// Bascule une electrode (on/off)
 function toggleElectrode(id: string) {
   acquisition.toggleElectrode(id);
 }
 
+// Remplace la selection par un preset
 function applyPreset(key: string) {
   acquisition.setSelectedElectrodes(presetMap[key] || []);
 }
 
+// Efface toutes les selections
 function clearAll() {
   acquisition.clearSelectedElectrodes();
 }
 
+// Selectionne toutes les electrodes de la liste
 function selectAll() {
   acquisition.setSelectedElectrodes(electrodes.map((e) => e.id));
 }
 
+// Demarre/arrete la session d'acquisition
 async function toggleSession() {
   if (acquisition.isRunning) await acquisition.stopSession();
   else await acquisition.startSession();
 }
 
+// Formate la qualite pour l'affichage
 function formatQuality(value?: number) {
   if (value === undefined) return "—";
   return `${Math.round(value)}%`;
 }
 
+// Associe une qualite numerique a une classe CSS
 function qualityClass(value?: number) {
   if (value === undefined) return "quality-unknown";
   if (value >= 75) return "quality-good";
@@ -275,6 +284,7 @@ function qualityClass(value?: number) {
   return "quality-poor";
 }
 
+// Statut streaming lisible
 const streamStatusLabel = computed(() => {
   if (streamStatus.value === "connecting") return "Connexion...";
   if (streamStatus.value === "open") return "Connecté";

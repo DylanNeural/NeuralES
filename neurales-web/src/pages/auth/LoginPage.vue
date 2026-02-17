@@ -27,7 +27,7 @@
         </button>
 
         <div class="text-xs text-slate-500 mt-3">
-          Astuce : si tu utilises des tokens JWT, le front stocke le token en local.
+          Astuce : avec des cookies HttpOnly, le token n'est pas accessible au front.
         </div>
       </form>
     </div>
@@ -39,14 +39,18 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 
+// Router pour naviguer apres connexion
 const router = useRouter();
+// Store d'authentification (login / token)
 const auth = useAuthStore();
 
+// Champs de formulaire + etats UI
 const email = ref("admin@neurales.com");
 const password = ref("admin123");
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+// Soumission du formulaire de connexion
 async function onSubmit() {
   error.value = null;
   loading.value = true;

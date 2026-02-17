@@ -23,8 +23,11 @@ echo DOCS      : http://localhost:8000/docs
 echo.
 
 REM Démarrer le serveur
-echo Demarrage du serveur Uvicorn...
+echo Demarrage du serveur Uvicorn (PowerShell)...
 echo.
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+echo Une fenetre PowerShell va s'ouvrir. Arrete le serveur avec Ctrl+C dans cette fenetre.
+echo Le nettoyage des caches sera fait automatiquement apres l'arret.
+echo.
+start "NeuralES Backend" /wait powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0run.ps1"
 
 pause

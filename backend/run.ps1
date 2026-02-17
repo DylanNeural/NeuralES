@@ -23,4 +23,25 @@ Write-Host "Demarrage du serveur Uvicorn..." -ForegroundColor Yellow
 Write-Host ""
 
 # Démarrer le serveur
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+$repoRoot = Resolve-Path "$PSScriptRoot\.."
+try {
+	python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+} finally {
+	Write-Host "" 
+	Write-Host "Nettoyage des caches Python..." -ForegroundColor Yellow
+
+	$cacheDirs = @("__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache")
+	foreach ($dirName in $cacheDirs) {
+		Get-ChildItem -Path $repoRoot -Recurse -Force -Directory -Filter $dirName -ErrorAction SilentlyContinue |
+			Where-Object { $_.FullName -notmatch '\\venv\\|\\\.venv\\|\\node_modules\\' } |
+			Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+	}
+
+    Get-ChildItem -Path $repoRoot -Recurse -Force -File -Include "*.pyc", "*.pyo", "*.pyd" -ErrorAction SilentlyContinue |
+		Where-Object { $_.FullName -notmatch '\\venv\\|\\\.venv\\|\\node_modules\\' } |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+
+    Remove-Item -Path (Join-Path $repoRoot ".coverage") -Force -ErrorAction SilentlyContinue
+    
+    Write-Host "Nettoyage termine." -ForegroundColor Green
+}
