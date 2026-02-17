@@ -16,6 +16,19 @@ class Settings(BaseSettings):
         "postgresql+psycopg2://user:pass@localhost:5432/neurales"
     )
     database_echo: bool = False
+
+    # Auth (basic admin user + JWT)
+    auth_secret_key: str = os.getenv("AUTH_SECRET_KEY", "dev-secret-change-me")
+    auth_algorithm: str = os.getenv("AUTH_ALGORITHM", "HS256")
+    auth_access_token_expire_minutes: int = int(os.getenv("AUTH_ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
+
+    admin_email: str = os.getenv("ADMIN_EMAIL", "admin@neurales.com")
+    admin_password: str = os.getenv("ADMIN_PASSWORD", "admin123")
+    admin_password_hash: str = os.getenv("ADMIN_PASSWORD_HASH", "")
+    admin_first_name: str = os.getenv("ADMIN_FIRST_NAME", "Admin")
+    admin_last_name: str = os.getenv("ADMIN_LAST_NAME", "NeuralES")
+    admin_role: str = os.getenv("ADMIN_ROLE", "admin")
+    admin_user_id: int = int(os.getenv("ADMIN_USER_ID", "1"))
     
     # EEG
     chunk_seconds: float = 0.05  # 50ms chunks

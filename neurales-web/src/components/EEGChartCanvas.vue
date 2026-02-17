@@ -14,7 +14,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+
+interface Props {
+  isActive?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  isActive: false
+});
 
 const canvas = ref<HTMLCanvasElement | null>(null);
 
@@ -74,16 +82,20 @@ function appendSamples(samples: number[][]) {
   if (nSamples === 0) return;
 
   for (let i = 0; i < nSamples; i += 1) {
-    xs.copyWithin(0, 1);
-    xs[xs.length - 1] = xs[xs.length - 2] + 1 / sfreq;
+    xs?.copyWithin(0, 1);
+    if (xs && xs.length > 0) {
+      xs[xs.length - 1] = (xs[xs.length - 2] ?? 0) + 1 / sfreq;
+    }
 
     for (let c = 0; c < nCh; c += 1) {
       const row = ys[c];
-      row.copyWithin(0, 1);
-      const v = Number(normalized[c][i]) || 0;
-      row[row.length - 1] = v;
-      const av = Math.abs(v);
-      if (av > maxAbsRaw) maxAbsRaw = av;
+      if (row) {
+        row.copyWithin(0, 1);
+        const v = Number(normalized[c]?.[i] ?? 0) || 0;
+        row[row.length - 1] = v;
+        const av = Math.abs(v);
+        if (av > maxAbsRaw) maxAbsRaw = av;
+      }
     }
   }
 }
@@ -150,13 +162,14 @@ function draw() {
 
   for (let c = 0; c < ch; c += 1) {
     const row = ys[c];
+    if (!row || row.length === 0) continue;
     const y0 = padT + c * rowH + rowH / 2;
     ctx.strokeStyle = `hsl(${Math.round((c / Math.max(1, ch)) * 300)}, 70%, 45%)`;
     ctx.lineWidth = 1.6;
     ctx.beginPath();
     for (let i = 0; i < row.length; i += 1) {
       const x = padL + (i / (row.length - 1)) * plotW;
-      const y = y0 - row[i] * gain;
+      const y = y0 - (row[i] ?? 0) * gain;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -166,11 +179,7 @@ function draw() {
   raf = requestAnimationFrame(draw);
 }
 
-onMounted(() => {
-  if (!canvas.value) return;
-  ctx = canvas.value.getContext("2d");
-  if (!ctx) return;
-
+function connectWebSocket() {
   const base = (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8000";
   const wsBase = String(base).replace(/^http/i, "ws");
   const token = localStorage.getItem("access_token");
@@ -205,11 +214,47 @@ onMounted(() => {
   ws.onerror = () => {
     status.value = "error";
   };
+  
   ws.onclose = () => {
     if (status.value !== "live") status.value = "error";
   };
+}
 
+function disconnectWebSocket() {
+  ws?.close();
+  ws = null;
+  status.value = "idle";
+  channelsCount.value = 0;
+  channelNames.value = [];
+  xs = null;
+  ys = [];
+  points = 0;
+  sfreq = 0;
+  maxAbsRaw = 0;
+}
+
+onMounted(() => {
+  if (!canvas.value) return;
+  ctx = canvas.value.getContext("2d");
+  if (!ctx) return;
+  
   raf = requestAnimationFrame(draw);
+  
+  // Connect only if isActive is true
+  if (props.isActive) {
+    connectWebSocket();
+  }
+});
+
+// Watch isActive prop to connect/disconnect
+watch(() => props.isActive, (newValue) => {
+  if (newValue) {
+    if (!ws || ws.readyState === WebSocket.CLOSED) {
+      connectWebSocket();
+    }
+  } else {
+    disconnectWebSocket();
+  }
 });
 
 onBeforeUnmount(() => {
