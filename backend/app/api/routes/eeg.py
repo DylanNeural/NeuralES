@@ -22,7 +22,7 @@ async def eeg_stream(ws: WebSocket):
     await ws.accept()
 
     # Chemin au dataset EDF
-    base = Path(__file__).resolve().parents[3]  # backend/app/
+    base = Path(__file__).resolve().parents[2]  # backend/app/
     psg = base / "data" / "sleep_edf" / "SC4001E0-PSG.edf"
 
     if not psg.exists():

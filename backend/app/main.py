@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from app.config import settings
-from app.api import organisations_router, eeg_router, health_router
+from app.api import auth_router, organisations_router, eeg_router, health_router, acquisition_router
 
 # Créer l'app FastAPI
 app = FastAPI(
@@ -170,6 +170,8 @@ async def home():
 
 # Enregistrer les routers
 app.include_router(health_router)
+app.include_router(auth_router)
 app.include_router(organisations_router)
 app.include_router(eeg_router)
+app.include_router(acquisition_router)
 

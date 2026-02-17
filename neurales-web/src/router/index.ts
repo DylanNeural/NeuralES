@@ -7,7 +7,7 @@ const router = createRouter({
     { path: "/", redirect: "/acquisition" },
 
     { path: "/login", component: () => import("@/pages/auth/LoginPage.vue"), meta: { public: true } },
-
+    { path: "/dev", component: () => import("@/pages/Development.vue"), meta: { public: true } },
 
     { path: "/acquisition", component: () => import("@/pages/acquisition/AcquisitionPage.vue") },
     { path: "/results", component: () => import("@/pages/results/ResultsPage.vue") },

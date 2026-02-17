@@ -7,7 +7,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 const props = defineProps({
-  type: { type: String, default: 'button' },
+  type: { type: String as () => 'button' | 'reset' | 'submit', default: 'button' },
   variant: { type: String, default: 'primary' },
   disabled: { type: Boolean, default: false },
 });

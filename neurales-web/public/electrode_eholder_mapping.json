@@ -1,0 +1,142 @@
+{
+  "M4_Hardware_09_Eholder.003": {
+    "electrode": "Fp1",
+    "distance": 1.0793900419692308
+  },
+  "M4_Hardware_09_Eholder.029": {
+    "electrode": "Fpz",
+    "distance": 0.3645259784642062
+  },
+  "M4_Hardware_09_Eholder.027": {
+    "electrode": "Fp2",
+    "distance": 0.9872761359265065
+  },
+  "M4_Hardware_09_Eholder.004": {
+    "electrode": "AF3",
+    "distance": 0.392685538347824
+  },
+  "M4_Hardware_09_Eholder.033": {
+    "electrode": "AF4",
+    "distance": 0.724693127349023
+  },
+  "M4_Hardware_09_Eholder.001": {
+    "electrode": "F7",
+    "distance": 0.6048393385997497
+  },
+  "M4_Hardware_09_Eholder.025": {
+    "electrode": "F5",
+    "distance": 0.3361688812075058
+  },
+  "M4_Hardware_09_Eholder.026": {
+    "electrode": "F3",
+    "distance": 0.6241428214647347
+  },
+  "M4_Hardware_09_Eholder.032": {
+    "electrode": "Fz",
+    "distance": 0.7411848260170898
+  },
+  "M4_Hardware_09_Eholder.030": {
+    "electrode": "F2",
+    "distance": 0.6424250608689805
+  },
+  "M4_Hardware_09_Eholder.031": {
+    "electrode": "F4",
+    "distance": 0.3838293806364764
+  },
+  "M4_Hardware_09_Eholder.034": {
+    "electrode": "F6",
+    "distance": 0.32372758996031825
+  },
+  "M4_Hardware_09_Eholder.009": {
+    "electrode": "F8",
+    "distance": 0.8687666727861361
+  },
+  "M4_Hardware_09_Eholder.005": {
+    "electrode": "T9",
+    "distance": 0.26248673755814234
+  },
+  "M4_Hardware_09_Eholder.023": {
+    "electrode": "T7",
+    "distance": 0.2498344077307557
+  },
+  "M4_Hardware_09_Eholder.020": {
+    "electrode": "C5",
+    "distance": 0.38618772544614044
+  },
+  "M4_Hardware_09_Eholder.019": {
+    "electrode": "C3",
+    "distance": 0.25940606328175986
+  },
+  "M4_Hardware_09_Eholder.018": {
+    "electrode": "C1",
+    "distance": 0.303827606053231
+  },
+  "M4_Hardware_09_Eholder.021": {
+    "electrode": "Cz",
+    "distance": 0.12728233665312758
+  },
+  "M4_Hardware_09_Eholder.013": {
+    "electrode": "C2",
+    "distance": 0.08516656185069656
+  },
+  "M4_Hardware_09_Eholder.016": {
+    "electrode": "C4",
+    "distance": 0.4734709395943877
+  },
+  "M4_Hardware_09_Eholder.028": {
+    "electrode": "C6",
+    "distance": 0.3899532048717275
+  },
+  "M4_Hardware_09_Eholder.015": {
+    "electrode": "T8",
+    "distance": 0.261920505685469
+  },
+  "M4_Hardware_09_Eholder.012": {
+    "electrode": "T10",
+    "distance": 0.26444648111460956
+  },
+  "M4_Hardware_09_Eholder.024": {
+    "electrode": "P7",
+    "distance": 0.18761706670685258
+  },
+  "M4_Hardware_09_Eholder.006": {
+    "electrode": "P5",
+    "distance": 0.4610215132797791
+  },
+  "M4_Hardware_09_Eholder": {
+    "electrode": "P3",
+    "distance": 0.9678439401437637
+  },
+  "M4_Hardware_09_Eholder.002": {
+    "electrode": "P1",
+    "distance": 0.9429593040735054
+  },
+  "M4_Hardware_09_Eholder.007": {
+    "electrode": "Pz",
+    "distance": 1.027633837922847
+  },
+  "M4_Hardware_09_Eholder.008": {
+    "electrode": "P4",
+    "distance": 0.9223711276633444
+  },
+  "M4_Hardware_09_Eholder.010": {
+    "electrode": "P6",
+    "distance": 0.4502567062661763
+  },
+  "M4_Hardware_09_Eholder.011": {
+    "electrode": "P8",
+    "distance": 0.2060582477072876
+  },
+  "M4_Hardware_09_Eholder.022": {
+    "electrode": "O1",
+    "distance": 0.820827055807382
+  },
+  "M4_Hardware_09_Eholder.017": {
+    "electrode": "Oz",
+    "distance": 1.3056731184939103
+  },
+  "M4_Hardware_09_Eholder.014": {
+    "electrode": "O2",
+    "distance": 0.8269534550834018
+  }
+}
