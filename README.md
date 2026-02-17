@@ -1,20 +1,48 @@
 # NeuralES
-Analyse brain EEG Signals to calculate tiredness using Ganglion Board (4-channels) minimum snap electrode
+Analyse des signaux EEG pour estimer la fatigue avec un casque a electrodes.
 
+## Structure
 
-financement du module Ganglion des éléctrodes et leur support en cours ...
+- backend/ : API FastAPI + traitement EEG.
+- neurales-web/ : application web Vue 3 + Vite.
+- desktop/ : application desktop Python.
 
-Utilisation des librairie d'analyse d'EEG et conf du module/electrodes en python
+## Demarrage rapide (Windows)
 
-front angular - typeScript
+### Backend
 
+```powershell
+cd backend
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+python -m uvicorn app.main:app --reload
+```
 
-1 : monter l'archi
-2 : front & back indépendant
-3 : création d'une template front basée sur la maquette figma
-4 : créer les entry point pour la future API 
-5 : Api django 
-8 : Création du MCD/BDD selon la phase 1 du projet
-6 : définition des endpoints nécéssaire a la phase 1 du projet
-9 : définir les modeles de la bdd dans django
-7 : 
+Option script : `backend/run.ps1` ou `backend/run.bat` (venv requis, PostgreSQL dans le PATH).
+
+### Web
+
+```powershell
+cd neurales-web
+npm install
+npm run dev
+```
+
+Option script : `neurales-web/run.ps1` ou `neurales-web/run.bat` (cree .env et installe les deps si besoin).
+
+### Desktop
+
+```powershell
+cd desktop
+.\run.ps1
+```
+
+Le script desktop cree le venv et installe les dependances si necessaire.
+
+## Documentation
+
+- Architecture backend : [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md)
+- Auth : [docs/authentication.md](docs/authentication.md)
+- Conventions : [docs/convention.md](docs/convention.md)
