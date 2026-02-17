@@ -14,14 +14,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch, withDefaults, defineProps } from "vue";
 
 interface Props {
   isActive?: boolean;
+  selectedElectrodes?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  isActive: false
+  isActive: false,
+  selectedElectrodes: () => [],
 });
 
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -30,6 +32,7 @@ const seconds = 10;
 const status = ref<"idle" | "connecting" | "live" | "error">("idle");
 const channelsCount = ref(0);
 const channelNames = ref<string[]>([]);
+const filteredChannelIndices = ref<number[]>([]);
 
 let ws: WebSocket | null = null;
 let ctx: CanvasRenderingContext2D | null = null;
@@ -57,6 +60,23 @@ const statusClass = computed(() => {
     "eeg-chart__dot--error": status.value === "error",
   };
 });
+
+// Update filtered channels when selection changes
+watch(
+  () => props.selectedElectrodes,
+  (selected) => {
+    if (selected.length === 0) {
+      // Show all channels if none selected
+      filteredChannelIndices.value = Array.from({ length: channelNames.value.length }, (_, i) => i);
+    } else {
+      // Show only selected channels
+      filteredChannelIndices.value = channelNames.value
+        .map((name, idx) => (selected.includes(name) ? idx : -1))
+        .filter(idx => idx !== -1);
+    }
+  },
+  { deep: true }
+);
 
 function initBuffers(newSfreq: number, names: string[]) {
   sfreq = newSfreq;
@@ -131,15 +151,18 @@ function draw() {
   const padB = 24;
   const plotW = w - padL - padR;
   const plotH = h - padT - padB;
-  const ch = ys.length;
+  
+  // Use filtered channels for display
+  const displayChannels = filteredChannelIndices.value.length > 0 ? filteredChannelIndices.value : Array.from({ length: ys.length }, (_, i) => i);
+  const ch = displayChannels.length;
   const rowH = plotH / Math.max(1, ch);
   const ampPx = rowH * 0.35;
   const gain = maxAbsRaw > 0 ? ampPx / maxAbsRaw : 1;
 
   ctx.strokeStyle = "rgba(141,153,174,0.25)";
   ctx.lineWidth = 1;
-  for (let c = 0; c < ch; c += 1) {
-    const y = padT + c * rowH + rowH / 2;
+  for (let displayIdx = 0; displayIdx < ch; displayIdx += 1) {
+    const y = padT + displayIdx * rowH + rowH / 2;
     ctx.beginPath();
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + plotW, y);
@@ -147,24 +170,26 @@ function draw() {
   }
 
   // Light background band per channel.
-  for (let c = 0; c < ch; c += 1) {
-    const yTop = padT + c * rowH;
+  for (let displayIdx = 0; displayIdx < ch; displayIdx += 1) {
+    const yTop = padT + displayIdx * rowH;
     ctx.fillStyle = "rgba(141,153,174,0.06)";
     ctx.fillRect(padL, yTop, plotW, rowH);
   }
 
   ctx.font = "12px sans-serif";
   ctx.fillStyle = "#64748b";
-  for (let c = 0; c < ch; c += 1) {
-    const y = padT + c * rowH + rowH / 2 + 4;
+  for (let displayIdx = 0; displayIdx < ch; displayIdx += 1) {
+    const c = displayChannels[displayIdx];
+    const y = padT + displayIdx * rowH + rowH / 2 + 4;
     ctx.fillText(channelNames.value[c] ?? `Ch ${c + 1}`, 8, y);
   }
 
-  for (let c = 0; c < ch; c += 1) {
+  for (let displayIdx = 0; displayIdx < ch; displayIdx += 1) {
+    const c = displayChannels[displayIdx];
     const row = ys[c];
     if (!row || row.length === 0) continue;
-    const y0 = padT + c * rowH + rowH / 2;
-    ctx.strokeStyle = `hsl(${Math.round((c / Math.max(1, ch)) * 300)}, 70%, 45%)`;
+    const y0 = padT + displayIdx * rowH + rowH / 2;
+    ctx.strokeStyle = `hsl(${Math.round((displayIdx / Math.max(1, ch)) * 300)}, 70%, 45%)`;
     ctx.lineWidth = 1.6;
     ctx.beginPath();
     for (let i = 0; i < row.length; i += 1) {
