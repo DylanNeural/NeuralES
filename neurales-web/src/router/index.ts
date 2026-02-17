@@ -14,6 +14,7 @@ const router = createRouter({
     { path: "/dashboard", component: () => import("@/pages/Dashboard.vue") },
     { path: "/devices", component: () => import("@/pages/devices/DevicesPage.vue") },
     { path: "/patients", component: () => import("@/pages/patients/PatientsPage.vue") },
+    { path: "/patients/new", component: () => import("@/pages/patients/PatientCreatePage.vue") },
 
     { path: "/:pathMatch(.*)*", component: () => import("@/pages/NotFound.vue") },
   ],

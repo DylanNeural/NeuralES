@@ -2,7 +2,7 @@
   <div class="space-y-8">
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-3xl font-bold text-primary-dark">Patients</h1>
-      <AppButton variant="primary">Nouveau patient</AppButton>
+      <AppButton variant="primary" @click="goToCreate">Nouveau patient</AppButton>
     </div>
     <div class="card overflow-x-auto">
       <table class="min-w-full text-left">
@@ -30,7 +30,14 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import AppButton from '@/components/ui/AppButton.vue';
+
+const router = useRouter();
+
+function goToCreate() {
+  router.push('/patients/new');
+}
 </script>
 
 <style scoped>
