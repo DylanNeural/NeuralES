@@ -1,18 +1,22 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import base64
+import hashlib
+import hmac
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.data.db import get_db
+from app.data.repositories.user_repository import UserRepository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class LoginIn(BaseModel):
@@ -30,23 +34,37 @@ class UserOut(BaseModel):
     prenom: str
     nom: str
     email: str
+    organisation_id: int
     role: Optional[str] = None
 
 
-def build_admin_user():
-    return {
-        "user_id": settings.admin_user_id,
-        "prenom": settings.admin_first_name,
-        "nom": settings.admin_last_name,
-        "email": settings.admin_email,
-        "role": settings.admin_role,
-    }
+def _b64encode(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).decode("utf-8")
 
 
-def verify_admin_password(password: str) -> bool:
-    if settings.admin_password_hash:
-        return pwd_context.verify(password, settings.admin_password_hash)
-    return password == settings.admin_password
+def _b64decode(raw: str) -> bytes:
+    return base64.urlsafe_b64decode(raw.encode("utf-8"))
+
+
+def hash_password(password: str, iterations: int = 260000) -> str:
+    salt = secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return f"pbkdf2_sha256${iterations}${_b64encode(salt)}${_b64encode(dk)}"
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    try:
+        scheme, iter_s, salt_b64, hash_b64 = password_hash.split("$", 3)
+        if scheme != "pbkdf2_sha256":
+            return False
+        iterations = int(iter_s)
+        salt = _b64decode(salt_b64)
+        expected = _b64decode(hash_b64)
+    except Exception:
+        return False
+
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return hmac.compare_digest(dk, expected)
 
 
 def create_access_token(payload: dict) -> str:
@@ -85,7 +103,10 @@ def clear_refresh_cookie(response: Response) -> None:
     )
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> dict:
     if not credentials or not credentials.credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
     try:
@@ -93,35 +114,49 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    subject = payload.get("sub")
-    if subject != settings.admin_email:
+    user_id = payload.get("user_id")
+    if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
 
-    return build_admin_user()
+    repo = UserRepository(db)
+    user = repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
+
+    return {
+        "user_id": user.user_id,
+        "prenom": user.prenom,
+        "nom": user.nom,
+        "email": user.email,
+        "organisation_id": user.organisation_id,
+        "role": None,
+    }
 
 
 @router.post("/login", response_model=TokenOut)
-def login(payload: LoginIn, response: Response):
-    if payload.email != settings.admin_email or not verify_admin_password(payload.password):
+def login(payload: LoginIn, response: Response, db: Session = Depends(get_db)):
+    repo = UserRepository(db)
+    user = repo.get_by_email(payload.email)
+    if not user or not user.password_hash:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    user = build_admin_user()
     access_token = create_access_token({
-        "sub": user["email"],
-        "user_id": user["user_id"],
-        "role": user.get("role"),
+        "sub": user.email,
+        "user_id": user.user_id,
     })
     refresh_token = create_refresh_token({
-        "sub": user["email"],
-        "user_id": user["user_id"],
-        "role": user.get("role"),
+        "sub": user.email,
+        "user_id": user.user_id,
     })
     set_refresh_cookie(response, refresh_token)
+    repo.update_last_login(user)
     return TokenOut(access_token=access_token)
 
 
 @router.post("/refresh", response_model=TokenOut)
-def refresh(request: Request, response: Response):
+def refresh(request: Request, response: Response, db: Session = Depends(get_db)):
     raw_token = request.cookies.get(settings.auth_refresh_cookie_name)
     if not raw_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
@@ -133,20 +168,22 @@ def refresh(request: Request, response: Response):
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    subject = payload.get("sub")
-    if subject != settings.admin_email:
+    user_id = payload.get("user_id")
+    if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
 
-    user = build_admin_user()
+    repo = UserRepository(db)
+    user = repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
+
     access_token = create_access_token({
-        "sub": user["email"],
-        "user_id": user["user_id"],
-        "role": user.get("role"),
+        "sub": user.email,
+        "user_id": user.user_id,
     })
     refresh_token = create_refresh_token({
-        "sub": user["email"],
-        "user_id": user["user_id"],
-        "role": user.get("role"),
+        "sub": user.email,
+        "user_id": user.user_id,
     })
     set_refresh_cookie(response, refresh_token)
     return TokenOut(access_token=access_token)

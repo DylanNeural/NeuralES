@@ -6,6 +6,8 @@ from app.api.routes import (
     acquisition_router,
     patients_router,
     results_router,
+    devices_router,
+    analytics_router,
 )
 
 __all__ = [
@@ -16,4 +18,6 @@ __all__ = [
     "acquisition_router",
     "patients_router",
     "results_router",
+    "devices_router",
+    "analytics_router",
 ]

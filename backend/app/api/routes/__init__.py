@@ -5,6 +5,8 @@ from .auth import router as auth_router
 from .acquisition import router as acquisition_router
 from .patients import router as patients_router
 from .results import router as results_router
+from .devices import router as devices_router
+from .analytics import router as analytics_router
 
 __all__ = [
     "auth_router",
@@ -14,4 +16,6 @@ __all__ = [
     "acquisition_router",
     "patients_router",
     "results_router",
+    "devices_router",
+    "analytics_router",
 ]

@@ -2,47 +2,58 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class ResultCreateRequest(BaseModel):
-    """Schéma pour créer un résultat"""
-    session_id: str = Field(min_length=1, max_length=100)
-    patient_id: int = Field(gt=0)
-    acquisition_date: datetime
-    fatigue_score: float = Field(ge=0, le=100)
-    quality: str = Field(pattern=r"^(Good|Fair|Poor)$")
-    notes: str | None = Field(default=None, max_length=500)
+class SessionCreateRequest(BaseModel):
+    """Schéma pour créer une session de mesure"""
+    mode: str = Field(min_length=1, max_length=20)
+    created_by_user_id: int = Field(gt=0)
+    organisation_id: int = Field(gt=0)
+    patient_id: int | None = Field(default=None, gt=0)
+    device_id: int | None = Field(default=None, gt=0)
+    consent_id: int | None = Field(default=None, gt=0)
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    notes: str | None = Field(default=None, max_length=255)
+    app_version: str | None = Field(default=None, max_length=50)
 
 
-class ResultUpdateRequest(BaseModel):
-    """Schéma pour mettre à jour un résultat"""
-    fatigue_score: float | None = Field(default=None, ge=0, le=100)
-    quality: str | None = Field(default=None, pattern=r"^(Good|Fair|Poor)$")
-    notes: str | None = Field(default=None, max_length=500)
+class SessionUpdateRequest(BaseModel):
+    """Schéma pour mettre à jour une session de mesure"""
+    mode: str | None = Field(default=None, min_length=1, max_length=20)
+    patient_id: int | None = Field(default=None, gt=0)
+    device_id: int | None = Field(default=None, gt=0)
+    consent_id: int | None = Field(default=None, gt=0)
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    notes: str | None = Field(default=None, max_length=255)
+    app_version: str | None = Field(default=None, max_length=50)
 
 
-class ResultResponse(BaseModel):
-    """Schéma de réponse pour un résultat"""
-    result_id: int
-    session_id: str
-    patient_id: int
-    acquisition_date: datetime
-    fatigue_score: float
-    quality: str
+class SessionResponse(BaseModel):
+    """Schéma de réponse pour une session de mesure"""
+    session_id: int
+    mode: str
+    started_at: datetime
+    ended_at: datetime | None
     notes: str | None
-    created_at: datetime
-    updated_at: datetime
+    app_version: str | None
+    device_id: int | None
+    consent_id: int | None
+    patient_id: int | None
+    created_by_user_id: int
+    organisation_id: int
 
     class Config:
         from_attributes = True
 
 
-class ResultListResponse(BaseModel):
-    """Schéma simplifié pour liste de résultats"""
-    result_id: int
-    session_id: str
-    patient_id: int
-    acquisition_date: datetime
-    fatigue_score: float
-    quality: str
+class SessionListResponse(BaseModel):
+    """Schéma simplifié pour liste de sessions"""
+    session_id: int
+    mode: str
+    started_at: datetime
+    ended_at: datetime | None
+    patient_id: int | None
+    device_id: int | None
 
     class Config:
         from_attributes = True

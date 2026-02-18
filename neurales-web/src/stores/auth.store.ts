@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import * as AuthAPI from "@/api/auth.api";
 import { setAccessToken } from "@/api/http";
 
-type User = { user_id: number; prenom: string; nom: string; email: string; role?: string };
+type User = { user_id: number; prenom: string; nom: string; email: string; organisation_id: number; role?: string };
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({

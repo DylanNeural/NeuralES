@@ -17,6 +17,12 @@
     <div class="card">
       <form class="grid gap-5 md:grid-cols-2" @submit.prevent="onSubmit">
         <div>
+          <label class="block text-xs text-slate-600 mb-1">Identifiant interne <span class="text-red-500">*</span></label>
+          <input v-model="form.identifiantInterne" type="text" class="input" required placeholder="PAT-0001" />
+          <p v-if="errors.identifiantInterne" class="text-xs text-red-600 mt-1">{{ errors.identifiantInterne }}</p>
+        </div>
+
+        <div>
           <label class="block text-xs text-slate-600 mb-1">Nom <span class="text-red-500">*</span></label>
           <input v-model="form.nom" type="text" class="input" required placeholder="Dupont" />
           <p v-if="errors.nom" class="text-xs text-red-600 mt-1">{{ errors.nom }}</p>
@@ -61,12 +67,22 @@
 
         <div>
           <label class="block text-xs text-slate-600 mb-1">Service</label>
-          <input v-model="form.service" class="input" />
+          <select v-model="form.service" class="input">
+            <option value="">Aucun</option>
+            <option v-for="service in servicesOptions" :key="service" :value="service">
+              {{ service }}
+            </option>
+          </select>
         </div>
 
         <div>
           <label class="block text-xs text-slate-600 mb-1">Medecin referent</label>
-          <input v-model="form.medecin" class="input" />
+          <select v-model="form.medecin" class="input">
+            <option value="">Aucun</option>
+            <option v-for="medecin in medecinsOptions" :key="medecin" :value="medecin">
+              {{ medecin }}
+            </option>
+          </select>
         </div>
 
         <div class="md:col-span-2">
@@ -86,12 +102,13 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppAlert from "@/components/ui/AppAlert.vue";
 import { usePatientsStore } from "@/stores/patients.store";
 import { parseApiError, logError, type ApiError } from "@/utils/api-errors";
+import * as PatientsAPI from "@/api/patients.api";
 
 const router = useRouter();
 const patientsStore = usePatientsStore();
@@ -99,8 +116,12 @@ const patientsStore = usePatientsStore();
 const isSubmitting = ref(false);
 const apiError = ref<ApiError | null>(null);
 const showError = ref(true);
+const servicesOptions = ref<string[]>([]);
+const medecinsOptions = ref<string[]>([]);
+const isLoadingOptions = ref(false);
 
 const form = reactive({
+  identifiantInterne: "",
   nom: "",
   prenom: "",
   naissance: "",
@@ -112,6 +133,7 @@ const form = reactive({
 });
 
 const errors = reactive({
+  identifiantInterne: "",
   nom: "",
   prenom: "",
   naissance: "",
@@ -119,11 +141,29 @@ const errors = reactive({
   sexe: "",
 });
 
+onMounted(async () => {
+  isLoadingOptions.value = true;
+  try {
+    const [services, medecins] = await Promise.all([
+      PatientsAPI.listServices(),
+      PatientsAPI.listMedecins(),
+    ]);
+    servicesOptions.value = services || [];
+    medecinsOptions.value = medecins || [];
+  } catch (err) {
+    logError(err, "PatientCreatePage.loadOptions");
+    console.warn("Failed to load services/medecins options");
+  } finally {
+    isLoadingOptions.value = false;
+  }
+});
+
 function goBack() {
   router.back();
 }
 
 function resetErrors() {
+  errors.identifiantInterne = "";
   errors.nom = "";
   errors.prenom = "";
   errors.naissance = "";
@@ -149,6 +189,10 @@ function onSecuInput(event: Event) {
 
 function validate() {
   resetErrors();
+
+  if (!form.identifiantInterne.trim()) {
+    errors.identifiantInterne = "L'identifiant interne est obligatoire.";
+  }
   
   // Validation Nom
   if (!form.nom.trim()) {
@@ -170,11 +214,9 @@ function validate() {
   }
 
   // Validation N° sécu
-  if (!form.secu.trim()) {
-    errors.secu = "Le numero de securite sociale est obligatoire.";
-  } else if (!isOnlyDigits(form.secu)) {
+  if (form.secu.trim() && !isOnlyDigits(form.secu)) {
     errors.secu = "Le numero doit contenir uniquement des chiffres.";
-  } else if (form.secu.length !== 13) {
+  } else if (form.secu.trim() && form.secu.length !== 13) {
     errors.secu = "Le numero doit contenir exactement 13 chiffres.";
   }
 
@@ -183,7 +225,7 @@ function validate() {
     errors.sexe = "Le sexe est obligatoire.";
   }
 
-  return !errors.nom && !errors.prenom && !errors.naissance && !errors.secu && !errors.sexe;
+  return !errors.identifiantInterne && !errors.nom && !errors.prenom && !errors.naissance && !errors.secu && !errors.sexe;
 }
 
 async function onSubmit() {
@@ -201,10 +243,11 @@ async function onSubmit() {
 
   try {
     await patientsStore.createPatient({
+      identifiant_interne: form.identifiantInterne.trim(),
       nom: form.nom.trim(),
       prenom: form.prenom.trim(),
       date_naissance: form.naissance,
-      numero_securite_sociale: form.secu.trim(),
+      numero_securite_sociale: form.secu.trim() || undefined,
       sexe: form.sexe,
       service: form.service.trim() || undefined,
       medecin_referent: form.medecin.trim() || undefined,
