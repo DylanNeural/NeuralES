@@ -22,7 +22,12 @@
             placeholder="Ex: Emotiv EPOC X"
             class="w-full px-4 py-2 border border-primary-light/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             required
+            @input="() => { const err = validateDeviceName(form.marque_modele); errors.marque_modele = err.length > 0 ? err.join(' ') : ''; }"
+            @blur="() => { const err = validateDeviceName(form.marque_modele); errors.marque_modele = err.length > 0 ? err.join(' ') : ''; }"
           />
+          <p v-if="errors.marque_modele" class="text-red-600 text-sm mt-1">
+            {{ errors.marque_modele }}
+          </p>
         </div>
 
         <!-- Numéro de série -->
@@ -47,6 +52,7 @@
             v-model="form.connection_type"
             class="w-full px-4 py-2 border border-primary-light/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             required
+            @change="validateConnectionType"
           >
             <option value="">Sélectionner un type...</option>
             <option value="usb">USB</option>
@@ -54,6 +60,9 @@
             <option value="ethernet">Ethernet</option>
             <option value="wifi">Wi-Fi</option>
           </select>
+          <p v-if="errors.connection_type" class="text-red-600 text-sm mt-1">
+            {{ errors.connection_type }}
+          </p>
         </div>
 
         <!-- État -->
@@ -65,6 +74,7 @@
             v-model="form.etat"
             class="w-full px-4 py-2 border border-primary-light/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             required
+            @change="validateEtat"
           >
             <option value="">Sélectionner un état...</option>
             <option value="actif">Actif</option>
@@ -72,6 +82,9 @@
             <option value="defaillant">Défaillant</option>
             <option value="maintenance">Maintenance</option>
           </select>
+          <p v-if="errors.etat" class="text-red-600 text-sm mt-1">
+            {{ errors.etat }}
+          </p>
         </div>
 
         <!-- Error Message -->
@@ -102,6 +115,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useDeviceStore } from '@/stores/devices.store'
 import AppButton from '@/components/ui/AppButton.vue'
+import { validateDeviceName, hasErrors } from '@/utils/form-validation'
 
 const router = useRouter()
 const route = useRoute()
@@ -116,6 +130,12 @@ const form = reactive({
   serial_number: '',
   connection_type: '',
   etat: 'actif'
+})
+
+const errors = reactive({
+  marque_modele: '',
+  connection_type: '',
+  etat: ''
 })
 
 onMounted(async () => {
@@ -134,9 +154,42 @@ onMounted(async () => {
   }
 })
 
+const validateForm = (): boolean => {
+  errors.marque_modele = ''
+  errors.connection_type = ''
+  errors.etat = ''
+  error.value = null
+
+  // Validation marque/modèle
+  const marqueErrors = validateDeviceName(form.marque_modele)
+  if (marqueErrors.length > 0) {
+    errors.marque_modele = marqueErrors.join(' ')
+  }
+
+  // Validation connexion
+  if (!form.connection_type) {
+    errors.connection_type = 'Le type de connexion est obligatoire.'
+  }
+
+  // Validation état
+  if (!form.etat) {
+    errors.etat = "L'état est obligatoire."
+  }
+
+  return !hasErrors(errors)
+}
+
+const validateConnectionType = () => {
+  errors.connection_type = form.connection_type ? '' : 'Le type de connexion est obligatoire.'
+}
+
+const validateEtat = () => {
+  errors.etat = form.etat ? '' : "L'état est obligatoire."
+}
+
 const handleSubmit = async () => {
-  if (!form.marque_modele || !form.connection_type || !form.etat) {
-    error.value = 'Veuillez remplir tous les champs obligatoires'
+  if (!validateForm()) {
+    error.value = 'Veuillez corriger les champs invalides'
     return
   }
 

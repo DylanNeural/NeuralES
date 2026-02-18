@@ -28,6 +28,8 @@
             placeholder="Mode de mesure"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
             required
+            @input="validateMode"
+            @blur="validateMode"
           />
           <p v-if="errors.mode" class="text-red-600 text-sm mt-1">
             {{ errors.mode }}
@@ -44,6 +46,8 @@
             type="datetime-local"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
             required
+            @input="validateStartDate"
+            @blur="validateStartDate"
           />
           <p v-if="errors.started_at" class="text-red-600 text-sm mt-1">
             {{ errors.started_at }}
@@ -59,7 +63,12 @@
             v-model="form.ended_at"
             type="datetime-local"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+            @input="validateEndDate"
+            @blur="validateEndDate"
           />
+          <p v-if="errors.ended_at" class="text-red-600 text-sm mt-1">
+            {{ errors.ended_at }}
+          </p>
         </div>
 
         <!-- Patient ID -->
@@ -142,6 +151,7 @@ import AppCard from "@/components/ui/AppCard.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppAlert from "@/components/ui/AppAlert.vue";
 import { useResultsStore } from "@/stores/results.store";
+import { validateSessionName, validateDate, validateDuration, hasErrors } from "@/utils/form-validation";
 
 const route = useRoute();
 const router = useRouter();
@@ -165,24 +175,57 @@ const form = reactive({
 const errors = reactive({
   mode: "",
   started_at: "",
+  ended_at: "",
 });
 
 const goBack = () => {
   router.back();
 };
 
+const validateMode = () => {
+  const errors_list = validateSessionName(form.mode);
+  errors.mode = errors_list.length > 0 ? errors_list.join(" ") : "";
+};
+
+const validateStartDate = () => {
+  const errors_list = validateDate(form.started_at);
+  errors.started_at = errors_list.length > 0 ? errors_list.join(" ") : "";
+};
+
+const validateEndDate = () => {
+  if (!form.ended_at) {
+    errors.ended_at = "";
+    return;
+  }
+  const errors_list = validateDate(form.ended_at);
+  errors.ended_at = errors_list.length > 0 ? errors_list.join(" ") : "";
+};
+
 const validateForm = (): boolean => {
   errors.mode = "";
   errors.started_at = "";
 
-  if (!form.mode.trim()) {
-    errors.mode = "Le mode est requis";
-  }
-  if (!form.started_at) {
-    errors.started_at = "La date/heure de début est requise";
+  // Validation mode (nom de session)
+  const modeErrors = validateSessionName(form.mode);
+  if (modeErrors.length > 0) {
+    errors.mode = modeErrors.join(" ");
   }
 
-  return !errors.mode && !errors.started_at;
+  // Validation date début
+  const startDateErrors = validateDate(form.started_at);
+  if (startDateErrors.length > 0) {
+    errors.started_at = startDateErrors.join(" ");
+  }
+
+  // Validation date fin si présente
+  if (form.ended_at) {
+    const endDateErrors = validateDate(form.ended_at);
+    if (endDateErrors.length > 0) {
+      errors.ended_at = endDateErrors.join(" ");
+    }
+  }
+
+  return !hasErrors(errors);
 };
 
 const handleSubmit = async () => {

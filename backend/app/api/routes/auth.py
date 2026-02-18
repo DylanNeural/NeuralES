@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import secrets
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.data.db import get_db
 from app.data.repositories.user_repository import UserRepository
+from app.data.repositories.refresh_token_repository import RefreshTokenRepository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
@@ -68,19 +70,44 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_access_token(payload: dict) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(minutes=settings.auth_access_token_expire_minutes)
-    to_encode = {**payload, "exp": expires}
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(minutes=settings.auth_access_token_expire_minutes)
+    to_encode = {
+        **payload,
+        "exp": expires,
+        "iat": int(now.timestamp()),
+        "iss": settings.auth_issuer,
+        "aud": settings.auth_audience,
+        "type": "access",
+    }
     return jwt.encode(to_encode, settings.auth_secret_key, algorithm=settings.auth_algorithm)
 
 
-def create_refresh_token(payload: dict) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(days=settings.auth_refresh_token_expire_days)
-    to_encode = {**payload, "exp": expires, "type": "refresh"}
-    return jwt.encode(to_encode, settings.auth_secret_key, algorithm=settings.auth_algorithm)
+def create_refresh_token(payload: dict) -> tuple[str, str, datetime, datetime]:
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(days=settings.auth_refresh_token_expire_days)
+    jti = uuid.uuid4().hex
+    to_encode = {
+        **payload,
+        "exp": expires,
+        "iat": int(now.timestamp()),
+        "iss": settings.auth_issuer,
+        "aud": settings.auth_audience,
+        "type": "refresh",
+        "jti": jti,
+    }
+    token = jwt.encode(to_encode, settings.auth_secret_key, algorithm=settings.auth_algorithm)
+    return token, jti, expires, now
 
 
 def decode_token(token: str) -> dict:
-    return jwt.decode(token, settings.auth_secret_key, algorithms=[settings.auth_algorithm])
+    return jwt.decode(
+        token,
+        settings.auth_secret_key,
+        algorithms=[settings.auth_algorithm],
+        audience=settings.auth_audience,
+        issuer=settings.auth_issuer,
+    )
 
 
 def set_refresh_cookie(response: Response, token: str) -> None:
@@ -112,6 +139,9 @@ def get_current_user(
     try:
         payload = decode_token(credentials.credentials)
     except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    if payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     user_id = payload.get("user_id")
@@ -146,10 +176,17 @@ def login(payload: LoginIn, response: Response, db: Session = Depends(get_db)):
         "sub": user.email,
         "user_id": user.user_id,
     })
-    refresh_token = create_refresh_token({
+    refresh_token, refresh_jti, refresh_expires, refresh_issued = create_refresh_token({
         "sub": user.email,
         "user_id": user.user_id,
     })
+    refresh_repo = RefreshTokenRepository(db)
+    refresh_repo.create(
+        jti=refresh_jti,
+        user_id=user.user_id,
+        issued_at=refresh_issued.replace(tzinfo=None),
+        expires_at=refresh_expires.replace(tzinfo=None),
+    )
     set_refresh_cookie(response, refresh_token)
     repo.update_last_login(user)
     return TokenOut(access_token=access_token)
@@ -168,6 +205,10 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
+    refresh_jti = payload.get("jti")
+    if not refresh_jti:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
     user_id = payload.get("user_id")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
@@ -177,20 +218,44 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user")
 
+    refresh_repo = RefreshTokenRepository(db)
+    current_refresh = refresh_repo.get_active_by_jti(refresh_jti)
+    if not current_refresh:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
     access_token = create_access_token({
         "sub": user.email,
         "user_id": user.user_id,
     })
-    refresh_token = create_refresh_token({
+    refresh_token, new_refresh_jti, new_refresh_expires, new_refresh_issued = create_refresh_token({
         "sub": user.email,
         "user_id": user.user_id,
     })
+    refresh_repo.revoke(current_refresh, replaced_by_jti=new_refresh_jti)
+    refresh_repo.create(
+        jti=new_refresh_jti,
+        user_id=user.user_id,
+        issued_at=new_refresh_issued.replace(tzinfo=None),
+        expires_at=new_refresh_expires.replace(tzinfo=None),
+    )
     set_refresh_cookie(response, refresh_token)
     return TokenOut(access_token=access_token)
 
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+    raw_token = request.cookies.get(settings.auth_refresh_cookie_name)
+    if raw_token:
+        try:
+            payload = decode_token(raw_token)
+            refresh_jti = payload.get("jti")
+            if payload.get("type") == "refresh" and refresh_jti:
+                refresh_repo = RefreshTokenRepository(db)
+                current_refresh = refresh_repo.get_by_jti(refresh_jti)
+                if current_refresh and current_refresh.revoked_at is None:
+                    refresh_repo.revoke(current_refresh)
+        except JWTError:
+            pass
     clear_refresh_cookie(response)
     return {"ok": True}
 

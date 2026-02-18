@@ -2,7 +2,9 @@
   <div class="space-y-8">
     <div class="flex items-center gap-3">
       <AppButton class="!px-3" @click="goBack">Retour</AppButton>
-      <h1 class="text-3xl font-bold text-primary-dark">Creation d'un nouveau patient</h1>
+      <h1 class="text-3xl font-bold text-primary-dark">
+        {{ isEdit ? "Modifier le patient" : "Creation d'un nouveau patient" }}
+      </h1>
     </div>
 
     <AppAlert
@@ -18,25 +20,56 @@
       <form class="grid gap-5 md:grid-cols-2" @submit.prevent="onSubmit">
         <div>
           <label class="block text-xs text-slate-600 mb-1">Identifiant interne <span class="text-red-500">*</span></label>
-          <input v-model="form.identifiantInterne" type="text" class="input" required placeholder="PAT-0001" />
+          <input 
+            v-model="form.identifiantInterne" 
+            type="text" 
+            class="input" 
+            required 
+            placeholder="PAT-0001"
+            @blur="validateIdentifiant"
+            @input="validateIdentifiant"
+          />
           <p v-if="errors.identifiantInterne" class="text-xs text-red-600 mt-1">{{ errors.identifiantInterne }}</p>
         </div>
 
         <div>
           <label class="block text-xs text-slate-600 mb-1">Nom <span class="text-red-500">*</span></label>
-          <input v-model="form.nom" type="text" class="input" required placeholder="Dupont" />
+          <input 
+            v-model="form.nom" 
+            type="text" 
+            class="input" 
+            required 
+            placeholder="Dupont"
+            @blur="validateNom"
+            @input="validateNom"
+          />
           <p v-if="errors.nom" class="text-xs text-red-600 mt-1">{{ errors.nom }}</p>
         </div>
 
         <div>
           <label class="block text-xs text-slate-600 mb-1">Prenom <span class="text-red-500">*</span></label>
-          <input v-model="form.prenom" type="text" class="input" required placeholder="Jean" />
+          <input 
+            v-model="form.prenom" 
+            type="text" 
+            class="input" 
+            required 
+            placeholder="Jean"
+            @blur="validatePrenom"
+            @input="validatePrenom"
+          />
           <p v-if="errors.prenom" class="text-xs text-red-600 mt-1">{{ errors.prenom }}</p>
         </div>
 
         <div>
           <label class="block text-xs text-slate-600 mb-1">Date de naissance <span class="text-red-500">*</span></label>
-          <input v-model="form.naissance" type="date" class="input" required />
+          <input 
+            v-model="form.naissance" 
+            type="date" 
+            class="input" 
+            required
+            @blur="validateNaissance"
+            @input="validateNaissance"
+          />
           <p v-if="errors.naissance" class="text-xs text-red-600 mt-1">{{ errors.naissance }}</p>
         </div>
 
@@ -50,6 +83,7 @@
             maxlength="13" 
             placeholder="1234567890123"
             @input="onSecuInput"
+            @blur="validateSecu"
           />
           <p v-if="errors.secu" class="text-xs text-red-600 mt-1">{{ errors.secu }}</p>
           <p class="text-xs text-slate-500 mt-1">13 chiffres requis</p>
@@ -93,7 +127,7 @@
         <div class="md:col-span-2 flex items-center justify-end gap-3">
           <AppButton type="button" @click="goBack">Annuler</AppButton>
           <AppButton variant="primary" type="submit" :disabled="isSubmitting">
-            {{ isSubmitting ? "Enregistrement..." : "Enregistrer" }}
+            {{ isSubmitting ? (isEdit ? "Modification..." : "Enregistrement...") : (isEdit ? "Modifier" : "Enregistrer") }}
           </AppButton>
         </div>
       </form>
@@ -109,8 +143,17 @@ import AppAlert from "@/components/ui/AppAlert.vue";
 import { usePatientsStore } from "@/stores/patients.store";
 import { parseApiError, logError, type ApiError } from "@/utils/api-errors";
 import * as PatientsAPI from "@/api/patients.api";
+import {
+  validatePatientName,
+  validateSecurityNumber,
+  validateInternalId,
+  validateDate,
+  hasErrors,
+} from "@/utils/form-validation";
+import { useRoute } from "vue-router";
 
 const router = useRouter();
+const route = useRoute();
 const patientsStore = usePatientsStore();
 
 const isSubmitting = ref(false);
@@ -119,6 +162,7 @@ const showError = ref(true);
 const servicesOptions = ref<string[]>([]);
 const medecinsOptions = ref<string[]>([]);
 const isLoadingOptions = ref(false);
+const isEdit = ref(!!route.params.id);
 
 const form = reactive({
   identifiantInterne: "",
@@ -150,9 +194,27 @@ onMounted(async () => {
     ]);
     servicesOptions.value = services || [];
     medecinsOptions.value = medecins || [];
+
+    // Si mode édition, charger les données du patient
+    if (isEdit.value) {
+      const patientId = Number(route.params.id);
+      await patientsStore.fetchPatientById(patientId);
+      const patient = patientsStore.current;
+      if (patient) {
+        form.identifiantInterne = patient.identifiant_interne || "";
+        form.nom = patient.nom || "";
+        form.prenom = patient.prenom || "";
+        form.naissance = patient.date_naissance || "";
+        form.secu = patient.numero_securite_sociale || "";
+        form.sexe = patient.sexe || "";
+        form.service = patient.service || "";
+        form.medecin = patient.medecin_referent || "";
+        form.remarque = patient.remarque || "";
+      }
+    }
   } catch (err) {
     logError(err, "PatientCreatePage.loadOptions");
-    console.warn("Failed to load services/medecins options");
+    console.warn("Failed to load data");
   } finally {
     isLoadingOptions.value = false;
   }
@@ -173,59 +235,51 @@ function resetErrors() {
   showError.value = true;
 }
 
-function hasNumbers(text: string): boolean {
-  return /\d/.test(text);
-}
-
-function isOnlyDigits(text: string): boolean {
-  return /^\d+$/.test(text);
-}
-
 function onSecuInput(event: Event) {
   const input = event.target as HTMLInputElement;
   // Ne garder que les chiffres
   form.secu = input.value.replace(/\D/g, "");
 }
 
+function validateIdentifiant() {
+  const validationErrors = validateInternalId(form.identifiantInterne);
+  errors.identifiantInterne = validationErrors.length > 0 ? validationErrors.join(" ") : "";
+}
+
+function validateNom() {
+  const validationErrors = validatePatientName(form.nom);
+  errors.nom = validationErrors.length > 0 ? validationErrors.join(" ") : "";
+}
+
+function validatePrenom() {
+  const validationErrors = validatePatientName(form.prenom);
+  errors.prenom = validationErrors.length > 0 ? validationErrors.join(" ") : "";
+}
+
+function validateNaissance() {
+  const validationErrors = validateDate(form.naissance);
+  errors.naissance = validationErrors.length > 0 ? validationErrors.join(" ") : "";
+}
+
+function validateSecu() {
+  const validationErrors = validateSecurityNumber(form.secu);
+  errors.secu = validationErrors.length > 0 ? validationErrors.join(" ") : "";
+}
+
 function validate() {
   resetErrors();
 
-  if (!form.identifiantInterne.trim()) {
-    errors.identifiantInterne = "L'identifiant interne est obligatoire.";
-  }
-  
-  // Validation Nom
-  if (!form.nom.trim()) {
-    errors.nom = "Le nom est obligatoire.";
-  } else if (hasNumbers(form.nom)) {
-    errors.nom = "Le nom ne doit pas contenir de chiffres.";
-  }
+  validateIdentifiant();
+  validateNom();
+  validatePrenom();
+  validateNaissance();
+  validateSecu();
 
-  // Validation Prenom
-  if (!form.prenom.trim()) {
-    errors.prenom = "Le prenom est obligatoire.";
-  } else if (hasNumbers(form.prenom)) {
-    errors.prenom = "Le prenom ne doit pas contenir de chiffres.";
-  }
-
-  // Validation Date de naissance
-  if (!form.naissance) {
-    errors.naissance = "La date de naissance est obligatoire.";
-  }
-
-  // Validation N° sécu
-  if (form.secu.trim() && !isOnlyDigits(form.secu)) {
-    errors.secu = "Le numero doit contenir uniquement des chiffres.";
-  } else if (form.secu.trim() && form.secu.length !== 13) {
-    errors.secu = "Le numero doit contenir exactement 13 chiffres.";
-  }
-
-  // Validation Sexe
   if (!form.sexe) {
     errors.sexe = "Le sexe est obligatoire.";
   }
 
-  return !errors.identifiantInterne && !errors.nom && !errors.prenom && !errors.naissance && !errors.secu && !errors.sexe;
+  return !hasErrors(errors);
 }
 
 async function onSubmit() {
@@ -242,7 +296,7 @@ async function onSubmit() {
   showError.value = true;
 
   try {
-    await patientsStore.createPatient({
+    const payload = {
       identifiant_interne: form.identifiantInterne.trim(),
       nom: form.nom.trim(),
       prenom: form.prenom.trim(),
@@ -252,7 +306,14 @@ async function onSubmit() {
       service: form.service.trim() || undefined,
       medecin_referent: form.medecin.trim() || undefined,
       remarque: form.remarque.trim() || undefined,
-    });
+    };
+
+    if (isEdit.value) {
+      const patientId = Number(route.params.id);
+      await patientsStore.updatePatient(patientId, payload);
+    } else {
+      await patientsStore.createPatient(payload);
+    }
     router.back();
   } catch (err: unknown) {
     logError(err, "PatientCreatePage.onSubmit");

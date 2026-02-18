@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, get_current_user
+from app.data.db import get_db
+from app.api.routes.auth import get_current_user
 from app.data.models.user_model import UserModel
 from app.data.models.result_model import SessionModel
 
