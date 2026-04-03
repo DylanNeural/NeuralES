@@ -30,6 +30,28 @@ npm run build
 npm run preview
 ```
 
+## Version Desktop (Tauri)
+
+### Prerequis
+
+- Rust + Cargo (https://rustup.rs)
+- Microsoft Visual Studio C++ Build Tools (Windows)
+
+### Lancer en desktop (dev)
+
+```powershell
+npm install
+npm run desktop:dev
+```
+
+### Build desktop (installateur)
+
+```powershell
+npm run desktop:build
+```
+
+Les artefacts de build sont generes dans `src-tauri/target/release/bundle/`.
+
 ## Assets publics
 
 Les fichiers statiques (GLB, SVG, JSON) sont dans [public/](public/).

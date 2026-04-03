@@ -10,18 +10,26 @@ type ElectrodeSelectionState = {
 	isRunning: boolean;
 	streamStatus: "idle" | "connecting" | "open" | "closed" | "error";
 	liveMetrics: LiveMetrics | null;
+	latestStreamChunk: {
+		t0: number;
+		sfreq: number;
+		channels: string[];
+		samples: number[][];
+	} | null;
+	streamMessageSeq: number;
 	qualityByElectrode: Record<string, number>;
+	error: string | null;
 };
 
 function clamp(value: number, min: number, max: number) {
 	return Math.min(max, Math.max(min, value));
 }
 
-function buildWsUrl() {
+function buildWsUrl(sessionId?: string) {
 	const base = (import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:8000") as string;
 	const urlBase = base.startsWith("http") ? base.replace(/^http/, "ws") : base;
 	const normalized = urlBase.replace(/\/$/, "");
-	const wsUrl = `${normalized}/eeg/stream`;
+	const wsUrl = sessionId ? `${normalized}/eeg/stream?session_id=${sessionId}` : `${normalized}/eeg/stream`;
 	console.log("[AcquisitionStore] WebSocket URL:", wsUrl);
 	return wsUrl;
 }
@@ -48,7 +56,10 @@ export const useAcquisitionStore = defineStore("acquisition", {
 		isRunning: false,
 		streamStatus: "idle",
 		liveMetrics: null,
+		latestStreamChunk: null,
+		streamMessageSeq: 0,
 		qualityByElectrode: {},
+		error: null,
 	}),
 	actions: {
 		toggleElectrode(electrodeId: string) {
@@ -82,32 +93,53 @@ export const useAcquisitionStore = defineStore("acquisition", {
 		},
 		async startSession() {
 			if (this.isRunning) return;
+			this.error = null;
+			this.latestStreamChunk = null;
+			this.streamMessageSeq = 0;
 			try {
 				const data = await startAcquisition();
 				this.sessionId = data.session_id;
-			} catch {
-				this.sessionId = `local-${Date.now()}`;
+				console.log("[AcquisitionStore] Session started:", this.sessionId);
+				this.isRunning = true;
+				this.connectStream();
+			} catch (err: any) {
+				const errorMsg = err?.response?.data?.detail || err?.message || "Unknown error";
+				const errorStatus = err?.response?.status || "N/A";
+				this.error = `[${errorStatus}] ${errorMsg}`;
+				console.error(
+					`[AcquisitionStore] Failed to start acquisition (Status: ${errorStatus}):`,
+					errorMsg,
+					err
+				);
+				this.sessionId = null;
+				this.isRunning = false;
 			}
-			this.isRunning = true;
-			this.connectStream();
 		},
 		async stopSession() {
 			if (!this.sessionId) return;
 			const sessionId = this.sessionId;
 			this.isRunning = false;
-			this.sessionId = null;
 			this.disconnectStream();
+			this.sessionId = null;
+			this.error = null;
 			try {
 				await stopAcquisition(sessionId);
-			} catch {
-				// noop
+				console.log("[AcquisitionStore] Session stopped:", sessionId);
+			} catch (err: any) {
+				const errorMsg = err?.response?.data?.detail || err?.message || "Unknown error";
+				this.error = errorMsg;
+				console.warn("[AcquisitionStore] Error stopping session:", errorMsg, err);
 			}
 		},
 		connectStream() {
 			if (ws) return;
+			if (!this.sessionId) {
+				console.error("[AcquisitionStore] Cannot connect: no sessionId");
+				return;
+			}
 			this.streamStatus = "connecting";
 			this.syncQualityMap();
-			const wsUrl = buildWsUrl();
+			const wsUrl = buildWsUrl(this.sessionId);
 			console.log("[AcquisitionStore] Connecting to WebSocket...");
 			ws = new WebSocket(wsUrl);
 			ws.onopen = () => {
@@ -142,34 +174,55 @@ export const useAcquisitionStore = defineStore("acquisition", {
 						this.streamStatus = "error";
 						return;
 					}
-					const qualityMap: Record<string, number> = { Good: 85, Fair: 60, Poor: 35 };
-					const baseQuality = qualityMap[payload.quality] ?? 75;
-					this.liveMetrics = {
-						fatigue_score: payload.fatigue,
-						quality: baseQuality,
-						timestamp: new Date().toISOString(),
-					};
-					this.selectedElectrodes.forEach((id) => {
-						const idx = payload.channels.findIndex((ch) => channelMatches(id, ch));
-						const samples = idx >= 0 ? payload.samples[idx] : undefined;
-						const jitter = (Math.random() - 0.5) * 10;
-						this.qualityByElectrode[id] = clamp(
-							qualityFromSamples(samples, baseQuality) + jitter,
-							0,
-							100
-						);
-					});
+					this.handleStreamMessage(payload);
 				} catch (err) {
 					console.error("[AcquisitionStore] Failed to parse message", err);
 					this.streamStatus = "error";
 				}
 			};
 		},
+		handleStreamMessage(payload: {
+			t0: number;
+			sfreq: number;
+			channels: string[];
+			samples: number[][];
+			fatigue: number;
+			quality: string;
+			alerts: string[];
+			chunk_seconds: number;
+			window_seconds: number;
+		}) {
+			const qualityMap: Record<string, number> = { Good: 85, Fair: 60, Poor: 35 };
+			const baseQuality = qualityMap[payload.quality] ?? 75;
+			this.latestStreamChunk = {
+				t0: payload.t0,
+				sfreq: payload.sfreq,
+				channels: payload.channels,
+				samples: payload.samples,
+			};
+			this.streamMessageSeq += 1;
+			this.liveMetrics = {
+				fatigue_score: payload.fatigue,
+				quality: baseQuality,
+				timestamp: new Date().toISOString(),
+			};
+			this.selectedElectrodes.forEach((id) => {
+				const idx = payload.channels.findIndex((ch) => channelMatches(id, ch));
+				const samples = idx >= 0 ? payload.samples[idx] : undefined;
+				const jitter = (Math.random() - 0.5) * 10;
+				this.qualityByElectrode[id] = clamp(
+					qualityFromSamples(samples, baseQuality) + jitter,
+					0,
+					100
+				);
+			});
+		},
 		disconnectStream() {
 			if (ws) {
 				ws.close();
 				ws = null;
 			}
+			this.latestStreamChunk = null;
 			this.streamStatus = "idle";
 		},
 	},

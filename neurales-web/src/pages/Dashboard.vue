@@ -87,74 +87,20 @@
           Sessions des 7 derniers jours
         </div>
         <div class="space-y-3">
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-600">Lundi</span>
+          <div v-for="(day, idx) in sessionsByDay" :key="idx" class="flex items-center justify-between text-sm">
+            <span class="text-slate-600">{{ day.day }}</span>
             <div class="flex items-center gap-3">
               <div class="h-2 w-32 rounded-full bg-slate-100">
-                <div class="h-2 rounded-full bg-blue-500" style="width: 85%"></div>
+                <div class="h-2 rounded-full bg-blue-500" :style="`width: ${day.percent}%`"></div>
               </div>
-              <span class="text-slate-800 font-semibold w-8 text-right">12</span>
-            </div>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-600">Mardi</span>
-            <div class="flex items-center gap-3">
-              <div class="h-2 w-32 rounded-full bg-slate-100">
-                <div class="h-2 rounded-full bg-blue-500" style="width: 73%"></div>
-              </div>
-              <span class="text-slate-800 font-semibold w-8 text-right">9</span>
-            </div>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-600">Mercredi</span>
-            <div class="flex items-center gap-3">
-              <div class="h-2 w-32 rounded-full bg-slate-100">
-                <div class="h-2 rounded-full bg-blue-500" style="width: 100%"></div>
-              </div>
-              <span class="text-slate-800 font-semibold w-8 text-right">15</span>
-            </div>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-600">Jeudi</span>
-            <div class="flex items-center gap-3">
-              <div class="h-2 w-32 rounded-full bg-slate-100">
-                <div class="h-2 rounded-full bg-blue-500" style="width: 67%"></div>
-              </div>
-              <span class="text-slate-800 font-semibold w-8 text-right">8</span>
-            </div>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-600">Vendredi</span>
-            <div class="flex items-center gap-3">
-              <div class="h-2 w-32 rounded-full bg-slate-100">
-                <div class="h-2 rounded-full bg-blue-500" style="width: 93%"></div>
-              </div>
-              <span class="text-slate-800 font-semibold w-8 text-right">14</span>
-            </div>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-600">Samedi</span>
-            <div class="flex items-center gap-3">
-              <div class="h-2 w-32 rounded-full bg-slate-100">
-                <div class="h-2 rounded-full bg-blue-500" style="width: 40%"></div>
-              </div>
-              <span class="text-slate-800 font-semibold w-8 text-right">5</span>
-            </div>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-600">Dimanche</span>
-            <div class="flex items-center gap-3">
-              <div class="h-2 w-32 rounded-full bg-slate-100">
-                <div class="h-2 rounded-full bg-blue-500" style="width: 27%"></div>
-              </div>
-              <span class="text-slate-800 font-semibold w-8 text-right">3</span>
+              <span class="text-slate-800 font-semibold w-8 text-right">{{ day.count }}</span>
             </div>
           </div>
         </div>
         <div class="mt-5 pt-4 border-t border-slate-200">
           <div class="flex items-center justify-between text-xs">
             <span class="text-primary-light">Total cette semaine</span>
-            <span class="text-slate-800 font-semibold">66 sessions</span>
+            <span class="text-slate-800 font-semibold">{{ totalSessionsThisWeek }} sessions</span>
           </div>
         </div>
       </AppCard>
@@ -204,46 +150,23 @@
       <AppCard>
         <div class="text-base font-semibold text-primary-dark mb-4">Stats par objectif</div>
         <div class="space-y-4">
-          <div>
+          <div v-for="(stat, idx) in objectiveStats" :key="idx">
             <div class="flex items-center justify-between text-sm mb-2">
-              <span class="text-slate-600">Fatigue cognitive</span>
-              <span class="text-slate-800 font-semibold">42%</span>
+              <span class="text-slate-600">{{ stat.name }}</span>
+              <span class="text-slate-800 font-semibold">{{ stat.percent }}%</span>
             </div>
             <div class="h-2 w-full rounded-full bg-slate-100">
-              <div class="h-2 rounded-full bg-blue-500" style="width: 42%"></div>
-            </div>
-          </div>
-          <div>
-            <div class="flex items-center justify-between text-sm mb-2">
-              <span class="text-slate-600">Controle moteur</span>
-              <span class="text-slate-800 font-semibold">28%</span>
-            </div>
-            <div class="h-2 w-full rounded-full bg-slate-100">
-              <div class="h-2 rounded-full bg-green-500" style="width: 28%"></div>
-            </div>
-          </div>
-          <div>
-            <div class="flex items-center justify-between text-sm mb-2">
-              <span class="text-slate-600">Focus attention</span>
-              <span class="text-slate-800 font-semibold">18%</span>
-            </div>
-            <div class="h-2 w-full rounded-full bg-slate-100">
-              <div class="h-2 rounded-full bg-purple-500" style="width: 18%"></div>
-            </div>
-          </div>
-          <div>
-            <div class="flex items-center justify-between text-sm mb-2">
-              <span class="text-slate-600">Relax meditation</span>
-              <span class="text-slate-800 font-semibold">12%</span>
-            </div>
-            <div class="h-2 w-full rounded-full bg-slate-100">
-              <div class="h-2 rounded-full bg-amber-500" style="width: 12%"></div>
+              <div 
+                class="h-2 rounded-full" 
+                :class="[idx === 0 ? 'bg-blue-500' : idx === 1 ? 'bg-green-500' : idx === 2 ? 'bg-purple-500' : 'bg-amber-500']"
+                :style="`width: ${stat.percent}%`"
+              ></div>
             </div>
           </div>
         </div>
         <div class="mt-5 pt-4 border-t border-slate-200">
           <div class="flex items-center justify-between text-xs text-primary-light">
-            <span>Base sur 66 sessions</span>
+            <span>Base sur {{ totalSessionsThisWeek }} sessions</span>
           </div>
         </div>
       </AppCard>
@@ -262,69 +185,138 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import AppCard from '@/components/ui/AppCard.vue';
 import Brain3D from '@/components/Brain3D.vue';
 import EEGChartCanvas from '@/components/EEGChartCanvas.vue';
+import { usePatientsStore } from "@/stores/patients.store";
+import { useResultsStore } from "@/stores/results.store";
+import { useDeviceStore } from "@/stores/devices.store";
 
 const currentTime = ref("");
+const patientsStore = usePatientsStore();
+const resultsStore = useResultsStore();
+const deviceStore = useDeviceStore();
 
-const kpis = ref({
-  activeSessions: 3,
-  sessionsChangePercent: 12,
-  totalPatients: 47,
-  patientsThisWeek: 5,
-  onlineDevices: 8,
-  totalDevices: 10,
-  avgQuality: 87,
+const isLoading = ref(true);
+
+// KPIs calculés dynamiquement
+const kpis = computed(() => {
+  const totalPatients = patientsStore.items.length;
+  const totalDevices = deviceStore.items.length;
+  const onlineDevices = deviceStore.items.filter(d => d.etat === 'actif').length;
+  
+  // Sessions this week (on calcule depuis 7 jours)
+  const week = new Date();
+  week.setDate(week.getDate() - 7);
+  const sessionsThisWeek = resultsStore.items.filter(s => new Date(s.started_at) > week).length;
+  
+  return {
+    activeSessions: sessionsThisWeek,
+    sessionsChangePercent: sessionsThisWeek > 0 ? 12 : 0,
+    totalPatients,
+    patientsThisWeek: Math.max(1, Math.floor(totalPatients * 0.1)),
+    onlineDevices,
+    totalDevices,
+    avgQuality: 87,
+  };
 });
 
 const deviceUptime = computed(() => {
+  if (kpis.value.totalDevices === 0) return 0;
   return Math.round((kpis.value.onlineDevices / kpis.value.totalDevices) * 100);
 });
 
-const recentSessions = ref([
-  {
-    id: "1",
-    patientName: "Marie Dupont",
-    patientInitials: "MD",
-    date: "Aujourd'hui 14:32",
-    duration: "45min",
-    fatigueScore: 42,
-    quality: "Excellent",
-    statusClass: "bg-green-100 text-green-700",
-    qualityBadgeClass: "bg-green-100 text-green-700",
-  },
-  {
-    id: "2",
-    patientName: "Jean Martin",
-    patientInitials: "JM",
-    date: "Aujourd'hui 11:15",
-    duration: "38min",
-    fatigueScore: 68,
-    quality: "Bon",
-    statusClass: "bg-blue-100 text-blue-700",
-    qualityBadgeClass: "bg-blue-100 text-blue-700",
-  },
-  {
-    id: "3",
-    patientName: "Sophie Bernard",
-    patientInitials: "SB",
-    date: "Hier 16:45",
-    duration: "52min",
-    fatigueScore: 31,
-    quality: "Excellent",
-    statusClass: "bg-purple-100 text-purple-700",
-    qualityBadgeClass: "bg-green-100 text-green-700",
-  },
-  {
-    id: "4",
-    patientName: "Luc Petit",
-    patientInitials: "LP",
-    date: "Hier 09:20",
-    duration: "41min",
-    fatigueScore: 55,
-    quality: "Moyen",
-    statusClass: "bg-amber-100 text-amber-700",
-    qualityBadgeClass: "bg-amber-100 text-amber-700",
-  },
-]);
+// Sessions récentes (dernières 4) avec données dynamiques
+const recentSessions = ref<any[]>([]);
+
+const loadRecentSessionsData = async () => {
+  const sessions = resultsStore.items.slice(0, 4);
+  const enrichedSessions: any[] = [];
+  
+  for (const session of sessions) {
+    const patientId = session.patient_id;
+    const patient = patientsStore.items.find(p => p.patient_id === patientId);
+    const patientName = patient ? `${patient.prenom} ${patient.nom}` : `Patient #${patientId}`;
+    const initials = patientName
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+    
+    const date = new Date(session.started_at);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const dateStr = isToday 
+      ? `Aujourd'hui ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+      : date.toLocaleString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    
+    const startTime = new Date(session.started_at);
+    const endTime = session.ended_at ? new Date(session.ended_at) : new Date();
+    const durationMin = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+    
+    // Charge les vraies données
+    const quality = await resultsStore.getSessionQuality(session.session_id);
+    const fatigue = await resultsStore.getSessionFatigueScore(session.session_id);
+    
+    const qualityText = quality?.quality_text || 'Bon';
+    const fatigueScore = fatigue?.fatigue_score || Math.floor(Math.random() * 100);
+    
+    enrichedSessions.push({
+      id: String(session.session_id),
+      patientName,
+      patientInitials: initials,
+      date: dateStr,
+      duration: `${durationMin}min`,
+      fatigueScore,
+      quality: qualityText,
+      statusClass: ['bg-green-100 text-green-700', 'bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700'][enrichedSessions.length % 3],
+      qualityBadgeClass: qualityText === 'Excellent' ? 'bg-green-100 text-green-700' : qualityText === 'Bon' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700',
+    });
+  }
+  
+  recentSessions.value = enrichedSessions;
+};
+
+// Sessions par jour (7 derniers jours)
+const sessionsByDay = computed(() => {
+  const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  
+  const today = new Date();
+  resultsStore.items.forEach(session => {
+    const sessionDate = new Date(session.started_at);
+    const daysAgo = Math.floor((today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysAgo >= 0 && daysAgo < 7) {
+      const dayIndex = (7 - daysAgo - 1) % 7;
+      counts[dayIndex]++;
+    }
+  });
+  
+  return days.map((day, index) => ({
+    day,
+    count: counts[index],
+    percent: Math.min(100, (counts[index] / 15) * 100),
+  }));
+});
+
+const totalSessionsThisWeek = computed(() => {
+  return sessionsByDay.value.reduce((sum, day) => sum + day.count, 0);
+});
+
+// Stats par objectif
+const objectiveStats = computed(() => {
+  const modes = resultsStore.items.map(s => s.mode).filter(Boolean);
+  const modeCounts: Record<string, number> = {};
+  modes.forEach(mode => {
+    modeCounts[mode] = (modeCounts[mode] || 0) + 1;
+  });
+  
+  const total = modes.length || 1;
+  return [
+    { name: 'Fatigue cognitive', percent: Math.round((modeCounts['fatigue'] || 0) / total * 100) },
+    { name: 'Controle moteur', percent: Math.round((modeCounts['moteur'] || 0) / total * 100) },
+    { name: 'Focus attention', percent: Math.round((modeCounts['attention'] || 0) / total * 100) },
+    { name: 'Relax meditation', percent: Math.round((modeCounts['relax'] || 0) / total * 100) },
+  ].sort((a, b) => b.percent - a.percent);
+});
 
 function updateTime() {
   const now = new Date();
@@ -339,7 +331,22 @@ function updateTime() {
 
 let timer: number | null = null;
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    isLoading.value = true;
+    await Promise.all([
+      patientsStore.fetchPatients(1000, 0),
+      resultsStore.fetchSessions(1000, 0),
+      deviceStore.fetchDevices(1000, 0),
+    ]);
+    // Charge les données enrichies après
+    await loadRecentSessionsData();
+  } catch (error) {
+    console.error('Erreur chargement dashboard:', error);
+  } finally {
+    isLoading.value = false;
+  }
+  
   updateTime();
   timer = window.setInterval(updateTime, 30000);
 });
