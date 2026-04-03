@@ -28,7 +28,10 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = os.getenv("AUTH_COOKIE_SECURE", "False").lower() == "true"  # HTTPS-only cookie. **SET TO TRUE IN PROD**.
     auth_cookie_samesite: str = os.getenv("AUTH_COOKIE_SAMESITE", "lax")  # Cookie SameSite policy.
 
-    cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:5173")  # Allowed CORS origins.
+    cors_origins: str = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:1420,http://127.0.0.1:1420,tauri://localhost",
+    )  # Allowed CORS origins.
 
     admin_email: str = os.getenv("ADMIN_EMAIL", "admin@neurales.com")  # Default admin email.
     admin_password: str = os.getenv("ADMIN_PASSWORD", "admin123")  # Default admin password.

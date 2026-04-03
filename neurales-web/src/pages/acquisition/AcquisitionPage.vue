@@ -31,6 +31,22 @@
       </div>
     </div>
 
+    <!-- Message d'erreur si présent -->
+    <div v-if="error" class="error-banner">
+      <svg class="error-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div class="error-content">
+        <p class="error-title">Erreur d'acquisition</p>
+        <p class="error-message">{{ error }}</p>
+      </div>
+      <button @click="clearError" class="error-close">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
     <!-- Grille principale : visualisation 3D + controles -->
     <div class="main-grid">
       <!-- Visualisation 3D : modele de casque interactif -->
@@ -235,6 +251,7 @@ const isRunning = computed(() => acquisition.isRunning);
 const sessionId = computed(() => acquisition.sessionId);
 const qualityByElectrode = computed(() => acquisition.qualityByElectrode);
 const streamStatus = computed(() => acquisition.streamStatus);
+const error = computed(() => acquisition.error);
 
 // Groupes d'electrodes pour selection rapide
 const presetMap: Record<string, string[]> = {
@@ -268,6 +285,11 @@ function selectAll() {
 async function toggleSession() {
   if (acquisition.isRunning) await acquisition.stopSession();
   else await acquisition.startSession();
+}
+
+// Efface le message d'erreur
+function clearError() {
+  acquisition.error = null;
 }
 
 // Formate la qualite pour l'affichage
@@ -712,5 +734,76 @@ const streamStatusLabel = computed(() => {
 
 .quality-unknown {
   background: #cbd5e1;
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.error-content {
+  flex: 1;
+}
+
+.error-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #991b1b;
+  margin: 0 0 0.25rem;
+}
+
+.error-message {
+  font-size: 0.8125rem;
+  color: #7f1d1d;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  word-break: break-word;
+}
+
+.error-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.error-close:hover {
+  color: #991b1b;
+}
+
+.error-close svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 </style>

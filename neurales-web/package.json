@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "desktop:dev": "tauri dev",
     "build": "vue-tsc -b && vite build",
+    "desktop:build": "tauri build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -16,6 +18,7 @@
     "vue-router": "^5.0.1"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^24.10.1",
     "@types/three": "^0.182.0",

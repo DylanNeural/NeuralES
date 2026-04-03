@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from app.api.routes.acquisition import active_sessions
 from app.config import settings
 from app.core.eeg_processor import EEGProcessor
 
@@ -17,9 +17,15 @@ processor = EEGProcessor(
 
 
 @router.websocket("/stream")
-async def eeg_stream(ws: WebSocket):
+async def eeg_stream(ws: WebSocket, session_id: str = Query(None)):
     """WebSocket pour streaming EEG temps réel"""
     await ws.accept()
+
+    # Vérifier que la session existe
+    if not session_id or session_id not in active_sessions:
+        await ws.send_json({"error": "Invalid or missing session_id"})
+        await ws.close()
+        return
 
     # Chemin au dataset EDF
     base = Path(__file__).resolve().parents[2]  # backend/app/
@@ -50,14 +56,21 @@ async def eeg_stream(ws: WebSocket):
 
     chunk_size = int(round(sfreq * settings.chunk_seconds))
     n_samples = data.shape[1]
+    position = 0  # Track position for looping
 
     try:
-        for start in range(0, n_samples, chunk_size):
+        while active_sessions.get(session_id, {}).get("status") == "running":
+            # Wrap around if we've reached the end
+            if position >= n_samples:
+                position = 0
+
+            start = position
             end = min(start + chunk_size, n_samples)
             chunk = data[:, start:end].astype(np.float32)
 
             n_chunk = chunk.shape[1]
             if n_chunk == 0:
+                await asyncio.sleep(0.01)
                 continue
 
             # Ajouter au ring buffer
@@ -94,12 +107,15 @@ async def eeg_stream(ws: WebSocket):
             }
 
             await ws.send_json(payload)
-            await asyncio.sleep(settings.chunk_seconds)
+            
+            # Update session metrics
+            active_sessions[session_id]["fatigue_score"] = score
+            active_sessions[session_id]["quality"] = 85.0
 
+            position = end
             t0 += (end - start) / sfreq
-
-            if end >= n_samples:
-                break
+            
+            await asyncio.sleep(settings.chunk_seconds)
 
     except WebSocketDisconnect:
         pass

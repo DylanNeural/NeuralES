@@ -5,9 +5,9 @@
 $SSHHost = "51.178.30.35"
 $SSHUser = "debian"
 $SSHPort = 22
-$SSHPassword = "SaleNoir1"
+$SSHPassword = "Azerty45"
 $RemoteDB = "127.0.0.1:5432"
-$LocalPort = 5432
+$LocalPort = 5433
 
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "   SSH Tunnel - NeuralES PostgreSQL"
