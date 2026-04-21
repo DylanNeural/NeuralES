@@ -62,9 +62,7 @@
 
       <!-- Actions -->
       <div class="flex gap-4 justify-start">
-        <router-link :to="`/devices/${deviceStore.current.device_id}/edit`">
-          <AppButton variant="primary">Modifier</AppButton>
-        </router-link>
+        <AppButton variant="primary" @click="goToEdit">Modifier</AppButton>
         <AppButton 
           variant="danger"
           @click="handleDelete"
@@ -142,6 +140,11 @@ const handleDelete = async () => {
   } finally {
     isDeleting.value = false
   }
+}
+
+const goToEdit = () => {
+  const deviceId = Number(route.params.id)
+  router.push(`/devices/${deviceId}/edit`)
 }
 </script>
 

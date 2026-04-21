@@ -58,7 +58,11 @@ async function onSubmit() {
     await auth.login(email.value, password.value);
     router.push("/acquisition");
   } catch (e: any) {
-    error.value = e?.response?.data?.detail ?? "Identifiants invalides.";
+    error.value =
+      e?.response?.data?.detail ??
+      e?.message ??
+      (typeof e === "string" ? e : null) ??
+      "Identifiants invalides.";
   } finally {
     loading.value = false;
   }

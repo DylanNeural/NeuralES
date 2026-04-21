@@ -64,12 +64,12 @@
             </td>
             <td class="py-3 px-4">
               <div class="flex gap-2">
-                <router-link :to="`/devices/${device.device_id}`">
-                  <AppButton variant="primary" class="!px-3 !py-1 text-sm">Voir</AppButton>
-                </router-link>
-                <router-link :to="`/devices/${device.device_id}/edit`">
-                  <AppButton variant="secondary" class="!px-3 !py-1 text-sm">Modifier</AppButton>
-                </router-link>
+                <AppButton variant="primary" class="!px-3 !py-1 text-sm" @click="goToDetail(device.device_id)">
+                  Voir
+                </AppButton>
+                <AppButton variant="secondary" class="!px-3 !py-1 text-sm" @click="goToEdit(device.device_id)">
+                  Modifier
+                </AppButton>
                 <AppButton 
                   variant="danger" 
                   class="!px-3 !py-1 text-sm"
@@ -89,9 +89,11 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useDeviceStore } from '@/stores/devices.store'
 import AppButton from '@/components/ui/AppButton.vue'
 
+const router = useRouter()
 const deviceStore = useDeviceStore()
 const deletingId = ref<number | null>(null)
 
@@ -142,6 +144,14 @@ const handleDelete = async (deviceId: number) => {
   } finally {
     deletingId.value = null
   }
+}
+
+const goToDetail = (deviceId: number) => {
+  router.push(`/devices/${deviceId}`)
+}
+
+const goToEdit = (deviceId: number) => {
+  router.push(`/devices/${deviceId}/edit`)
 }
 </script>
 

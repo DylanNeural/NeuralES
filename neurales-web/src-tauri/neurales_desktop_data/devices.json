@@ -1,0 +1,18 @@
+[
+  {
+    "device_id": 3,
+    "organisation_id": 1,
+    "marque_modele": "fsfkjh",
+    "serial_number": "fdsoigjdojofi",
+    "connection_type": "usb",
+    "etat": "actif"
+  },
+  {
+    "device_id": 4,
+    "organisation_id": 1,
+    "marque_modele": "fndsjf",
+    "serial_number": "njkifnedjin",
+    "connection_type": "usb",
+    "etat": "actif"
+  }
+]

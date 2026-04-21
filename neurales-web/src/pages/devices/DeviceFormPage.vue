@@ -114,6 +114,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useDeviceStore } from '@/stores/devices.store'
+import type { DeviceCreatePayload } from '@/api/devices.api'
 import AppButton from '@/components/ui/AppButton.vue'
 import { validateDeviceName, hasErrors } from '@/utils/form-validation'
 
@@ -187,6 +188,18 @@ const validateEtat = () => {
   errors.etat = form.etat ? '' : "L'état est obligatoire."
 }
 
+const buildPayload = (): DeviceCreatePayload => ({
+  marque_modele: form.marque_modele.trim(),
+  serial_number: form.serial_number.trim() || undefined,
+  connection_type: form.connection_type,
+  etat: form.etat,
+})
+
+const toErrorMessage = (err: unknown, fallback: string): string => {
+  const e = err as any
+  return e?.response?.data?.detail || e?.message || (typeof e === 'string' ? e : fallback)
+}
+
 const handleSubmit = async () => {
   if (!validateForm()) {
     error.value = 'Veuillez corriger les champs invalides'
@@ -197,14 +210,15 @@ const handleSubmit = async () => {
   error.value = null
 
   try {
+    const payload = buildPayload()
     if (isEdit) {
-      await deviceStore.updateDevice(Number(route.params.id), form)
+      await deviceStore.updateDevice(Number(route.params.id), payload)
     } else {
-      await deviceStore.createDevice(form as any)
+      await deviceStore.createDevice(payload)
     }
     await router.push('/devices')
-  } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Une erreur est survenue'
+  } catch (err: unknown) {
+    error.value = toErrorMessage(err, 'Une erreur est survenue')
     console.error(err)
   } finally {
     isSubmitting.value = false

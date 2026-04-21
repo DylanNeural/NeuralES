@@ -2,11 +2,15 @@ import { defineStore } from "pinia";
 import * as AuthAPI from "@/api/auth.api";
 import { setAccessToken } from "@/api/http";
 
-type User = { user_id: number; prenom: string; nom: string; email: string; organisation_id: number; role?: string };
+const DESKTOP_TOKEN_KEY = "desktop_access_token";
+
+function isDesktopTauri() {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
-    user: null as User | null,
+    user: null as AuthAPI.AuthUser | null,
     isReady: false,
     accessToken: null as string | null,
   }),
@@ -19,6 +23,9 @@ export const useAuthStore = defineStore("auth", {
       const res = await AuthAPI.login({ email, password });
       this.accessToken = res.access_token;
       setAccessToken(res.access_token);
+      if (isDesktopTauri()) {
+        localStorage.setItem(DESKTOP_TOKEN_KEY, res.access_token);
+      }
       await this.fetchMe();
       this.isReady = true;
     },
@@ -34,6 +41,9 @@ export const useAuthStore = defineStore("auth", {
       try {
         await this.refresh();
       } catch {
+        if (isDesktopTauri()) {
+          localStorage.removeItem(DESKTOP_TOKEN_KEY);
+        }
         this.accessToken = null;
         setAccessToken(null);
         this.user = null;
@@ -51,6 +61,9 @@ export const useAuthStore = defineStore("auth", {
       }
       this.accessToken = null;
       setAccessToken(null);
+      if (isDesktopTauri()) {
+        localStorage.removeItem(DESKTOP_TOKEN_KEY);
+      }
       this.user = null;
       this.isReady = true;
     },

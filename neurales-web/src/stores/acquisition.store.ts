@@ -1,7 +1,9 @@
 import { defineStore } from "pinia";
 import { startAcquisition, stopAcquisition, type LiveMetrics } from "@/api/acquisition.api";
+import { isDesktopRuntime } from "@/utils/desktop-runtime";
 
 let ws: WebSocket | null = null;
+let desktopTicker: number | null = null;
 
 type ElectrodeSelectionState = {
 	selectedElectrodes: string[];
@@ -32,6 +34,37 @@ function buildWsUrl(sessionId?: string) {
 	const wsUrl = sessionId ? `${normalized}/eeg/stream?session_id=${sessionId}` : `${normalized}/eeg/stream`;
 	console.log("[AcquisitionStore] WebSocket URL:", wsUrl);
 	return wsUrl;
+}
+
+function startDesktopTicker(store: ReturnType<typeof useAcquisitionStore>) {
+	if (desktopTicker !== null) return;
+	desktopTicker = window.setInterval(() => {
+		if (!store.isRunning || !store.sessionId) {
+			return;
+		}
+		const fatigue = Math.max(0, Math.min(100, 18 + Math.round(Math.random() * 12)));
+		const quality = Math.max(0, Math.min(100, 70 + Math.round((Math.random() - 0.5) * 20)));
+		const channels = store.selectedElectrodes.length > 0 ? [...store.selectedElectrodes] : ["Fp1", "Fp2"];
+		const samples = channels.map(() => Array.from({ length: 128 }, () => (Math.random() - 0.5) * 20));
+		store.handleStreamMessage({
+			t0: Date.now(),
+			sfreq: 128,
+			channels,
+			samples,
+			fatigue,
+			quality: quality > 80 ? "Good" : quality > 55 ? "Fair" : "Poor",
+			alerts: [],
+			chunk_seconds: 1,
+			window_seconds: 10,
+		});
+	}, 1200);
+}
+
+function stopDesktopTicker() {
+	if (desktopTicker !== null) {
+		window.clearInterval(desktopTicker);
+		desktopTicker = null;
+	}
 }
 
 function channelMatches(electrodeId: string, channel: string) {
@@ -97,6 +130,13 @@ export const useAcquisitionStore = defineStore("acquisition", {
 			this.latestStreamChunk = null;
 			this.streamMessageSeq = 0;
 			try {
+				if (isDesktopRuntime()) {
+					this.sessionId = `desktop-${Date.now()}`;
+					this.isRunning = true;
+					this.streamStatus = "open";
+					startDesktopTicker(this);
+					return;
+				}
 				const data = await startAcquisition();
 				this.sessionId = data.session_id;
 				console.log("[AcquisitionStore] Session started:", this.sessionId);
@@ -123,6 +163,10 @@ export const useAcquisitionStore = defineStore("acquisition", {
 			this.sessionId = null;
 			this.error = null;
 			try {
+				if (isDesktopRuntime()) {
+					console.log("[AcquisitionStore] Desktop session stopped:", sessionId);
+					return;
+				}
 				await stopAcquisition(sessionId);
 				console.log("[AcquisitionStore] Session stopped:", sessionId);
 			} catch (err: any) {
@@ -132,6 +176,11 @@ export const useAcquisitionStore = defineStore("acquisition", {
 			}
 		},
 		connectStream() {
+			if (isDesktopRuntime()) {
+				this.streamStatus = "open";
+				startDesktopTicker(this);
+				return;
+			}
 			if (ws) return;
 			if (!this.sessionId) {
 				console.error("[AcquisitionStore] Cannot connect: no sessionId");
@@ -218,6 +267,7 @@ export const useAcquisitionStore = defineStore("acquisition", {
 			});
 		},
 		disconnectStream() {
+			stopDesktopTicker();
 			if (ws) {
 				ws.close();
 				ws = null;

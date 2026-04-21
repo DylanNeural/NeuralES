@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { http as api } from "@/api/http";
+import * as PatientsAPI from "@/api/patients.api";
 
 export interface Patient {
   patient_id: number;
@@ -44,8 +44,7 @@ export const usePatientsStore = defineStore("patients", () => {
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await api.get("/patients", { params: { limit, offset } });
-      items.value = response.data || [];
+      items.value = (await PatientsAPI.listPatients({ limit, offset })) || [];
     } catch (err: any) {
       error.value = err.response?.data?.detail || "Erreur lors du chargement";
       throw err;
@@ -58,9 +57,10 @@ export const usePatientsStore = defineStore("patients", () => {
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await api.get(`/patients/${patientId}`);
-      current.value = response.data;
-      return response.data;
+      const response = await PatientsAPI.getPatientById(patientId);
+      if (!response) throw new Error("Patient introuvable");
+      current.value = response;
+      return response;
     } catch (err: any) {
       error.value = err.response?.data?.detail || "Erreur lors du chargement";
       throw err;
@@ -73,9 +73,9 @@ export const usePatientsStore = defineStore("patients", () => {
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await api.post("/patients", payload);
-      items.value.unshift(response.data);
-      return response.data;
+      const response = await PatientsAPI.createPatient(payload);
+      items.value.unshift(response);
+      return response;
     } catch (err: any) {
       error.value = err.response?.data?.detail || "Erreur lors de la création";
       throw err;
@@ -91,11 +91,12 @@ export const usePatientsStore = defineStore("patients", () => {
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await api.put(`/patients/${patientId}`, payload);
+      const response = await PatientsAPI.updatePatient(patientId, payload);
+      if (!response) throw new Error("Patient introuvable");
       const index = items.value.findIndex((p) => p.patient_id === patientId);
-      if (index >= 0) items.value[index] = response.data;
-      current.value = response.data;
-      return response.data;
+      if (index >= 0) items.value[index] = response;
+      current.value = response;
+      return response;
     } catch (err: any) {
       error.value = err.response?.data?.detail || "Erreur lors de la mise à jour";
       throw err;
@@ -108,7 +109,7 @@ export const usePatientsStore = defineStore("patients", () => {
     isLoading.value = true;
     error.value = null;
     try {
-      await api.delete(`/patients/${patientId}`);
+      await PatientsAPI.deletePatient(patientId);
       items.value = items.value.filter((p) => p.patient_id !== patientId);
       if (current.value?.patient_id === patientId) current.value = null;
     } catch (err: any) {
@@ -121,8 +122,7 @@ export const usePatientsStore = defineStore("patients", () => {
 
   const fetchServices = async () => {
     try {
-      const response = await api.get("/patients/meta/services");
-      services.value = response.data;
+      services.value = await PatientsAPI.listServices();
     } catch (err: any) {
       console.error("Erreur services:", err);
     }
@@ -130,8 +130,7 @@ export const usePatientsStore = defineStore("patients", () => {
 
   const fetchMedecins = async () => {
     try {
-      const response = await api.get("/patients/meta/medecins");
-      medecins.value = response.data;
+      medecins.value = await PatientsAPI.listMedecins();
     } catch (err: any) {
       console.error("Erreur medecins:", err);
     }

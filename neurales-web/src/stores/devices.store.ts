@@ -1,15 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { http as api } from '@/api/http'
+import * as DevicesAPI from '@/api/devices.api'
 
 export interface Device {
   device_id: number
   marque_modele: string
-  serial_number?: string
+  serial_number?: string | null
   connection_type: string
   etat: string
   organisation_id: number
 }
+
+type DevicePayload = DevicesAPI.DeviceCreatePayload
 
 export const useDeviceStore = defineStore('device', () => {
   const items = ref<Device[]>([])
@@ -19,16 +21,18 @@ export const useDeviceStore = defineStore('device', () => {
 
   const isEmpty = computed(() => items.value.length === 0)
 
+  const toErrorMessage = (err: unknown, fallback: string): string => {
+    const e = err as any
+    return e?.response?.data?.detail || e?.message || (typeof e === 'string' ? e : fallback)
+  }
+
   const fetchDevices = async (limit: number = 50, offset: number = 0) => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.get('/devices', {
-        params: { limit, offset }
-      })
-      items.value = response.data
+      items.value = (await DevicesAPI.listDevices({ limit, offset })) || []
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Erreur lors du chargement des dispositifs'
+      error.value = toErrorMessage(err, 'Erreur lors du chargement des dispositifs')
       throw err
     } finally {
       isLoading.value = false
@@ -39,39 +43,39 @@ export const useDeviceStore = defineStore('device', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.get(`/devices/${deviceId}`)
-      current.value = response.data
-      return response.data
+      const response = await DevicesAPI.getDeviceById(deviceId)
+      if (!response) throw new Error('Dispositif introuvable')
+      current.value = response
+      return response
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Erreur lors du chargement du dispositif'
+      error.value = toErrorMessage(err, 'Erreur lors du chargement du dispositif')
       throw err
     } finally {
       isLoading.value = false
     }
   }
 
-  const createDevice = async (payload: Omit<Device, 'device_id' | 'organisation_id'>) => {
+  const createDevice = async (payload: DevicePayload) => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.post('/devices', payload)
-      const device = response.data
+      const device = await DevicesAPI.createDevice(payload)
       items.value.push(device)
       return device
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Erreur lors de la création du dispositif'
+      error.value = toErrorMessage(err, 'Erreur lors de la création du dispositif')
       throw err
     } finally {
       isLoading.value = false
     }
   }
 
-  const updateDevice = async (deviceId: number, payload: Partial<Omit<Device, 'device_id' | 'organisation_id'>>) => {
+  const updateDevice = async (deviceId: number, payload: Partial<DevicePayload>) => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.put(`/devices/${deviceId}`, payload)
-      const device = response.data
+      const device = await DevicesAPI.updateDevice(deviceId, payload)
+      if (!device) throw new Error('Dispositif introuvable')
       const index = items.value.findIndex(d => d.device_id === deviceId)
       if (index !== -1) {
         items.value[index] = device
@@ -81,7 +85,7 @@ export const useDeviceStore = defineStore('device', () => {
       }
       return device
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Erreur lors de la mise à jour du dispositif'
+      error.value = toErrorMessage(err, 'Erreur lors de la mise à jour du dispositif')
       throw err
     } finally {
       isLoading.value = false
@@ -92,13 +96,13 @@ export const useDeviceStore = defineStore('device', () => {
     isLoading.value = true
     error.value = null
     try {
-      await api.delete(`/devices/${deviceId}`)
+      await DevicesAPI.deleteDevice(deviceId)
       items.value = items.value.filter(d => d.device_id !== deviceId)
       if (current.value?.device_id === deviceId) {
         current.value = null
       }
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Erreur lors de la suppression du dispositif'
+      error.value = toErrorMessage(err, 'Erreur lors de la suppression du dispositif')
       throw err
     } finally {
       isLoading.value = false

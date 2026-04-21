@@ -48,14 +48,13 @@
                 >
                   Voir
                 </AppButton>
-                <router-link :to="`/results/${session.session_id}/edit`">
-                  <AppButton
-                    variant="secondary"
-                    class="!px-3 !py-1 text-sm"
-                  >
-                    Modifier
-                  </AppButton>
-                </router-link>
+                <AppButton
+                  variant="secondary"
+                  class="!px-3 !py-1 text-sm"
+                  @click="goToEdit(session.session_id)"
+                >
+                  Modifier
+                </AppButton>
                 <AppButton
                   variant="danger"
                   class="!px-3 !py-1 text-sm"
@@ -97,6 +96,10 @@ function goToCreate() {
 
 function goToDetail(sessionId: number) {
   router.push(`/results/${sessionId}`);
+}
+
+function goToEdit(sessionId: number) {
+  router.push(`/results/${sessionId}/edit`);
 }
 
 async function handleDelete(sessionId: number) {
