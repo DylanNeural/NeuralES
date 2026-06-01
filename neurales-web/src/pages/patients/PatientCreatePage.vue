@@ -197,7 +197,7 @@ onMounted(async () => {
 
     // Si mode édition, charger les données du patient
     if (isEdit.value) {
-      const patientId = Number(route.params.id);
+      const patientId = String(route.params.id);
       await patientsStore.fetchPatientById(patientId);
       const patient = patientsStore.current;
       if (patient) {
@@ -309,7 +309,7 @@ async function onSubmit() {
     };
 
     if (isEdit.value) {
-      const patientId = Number(route.params.id);
+      const patientId = String(route.params.id);
       await patientsStore.updatePatient(patientId, payload);
     } else {
       await patientsStore.createPatient(payload);

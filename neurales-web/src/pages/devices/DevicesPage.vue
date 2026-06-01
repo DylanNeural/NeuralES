@@ -95,7 +95,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 const router = useRouter()
 const deviceStore = useDeviceStore()
-const deletingId = ref<number | null>(null)
+const deletingId = ref<string | null>(null)
 
 onMounted(async () => {
   await deviceStore.fetchDevices()
@@ -131,7 +131,7 @@ const getStatusClass = (status: string): string => {
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
-const handleDelete = async (deviceId: number) => {
+const handleDelete = async (deviceId: string) => {
   if (!confirm('Êtes-vous sûr(e) de vouloir supprimer ce dispositif ?')) {
     return
   }
@@ -146,11 +146,11 @@ const handleDelete = async (deviceId: number) => {
   }
 }
 
-const goToDetail = (deviceId: number) => {
+const goToDetail = (deviceId: string) => {
   router.push(`/devices/${deviceId}`)
 }
 
-const goToEdit = (deviceId: number) => {
+const goToEdit = (deviceId: string) => {
   router.push(`/devices/${deviceId}/edit`)
 }
 </script>

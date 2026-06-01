@@ -14,6 +14,24 @@ export function parseApiError(error: unknown): ApiError {
     return { message: "Erreur inconnue." };
   }
 
+  // Gestion des erreurs structurées provenant de Rust (AppError)
+  if (typeof error === "object" && "message" in error && "status" in error) {
+    return {
+      message: (error as any).message,
+      status: (error as any).status,
+      details: (error as any).details || "Erreur locale (Tauri)",
+    };
+  }
+
+  // Gestion native des erreurs Tauri (qui sont souvent de simples chaînes de caractères)
+  if (typeof error === "string") {
+    return {
+      message: error,
+      status: 400,
+      details: "Erreur locale (Tauri)",
+    };
+  }
+
   const axiosError = error as AxiosError<{ detail?: string; message?: string }>;
 
   // Erreur réseau (pas de réponse du serveur)

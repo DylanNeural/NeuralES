@@ -79,11 +79,11 @@ function goToCreate() {
   router.push('/patients/new');
 }
 
-function goToDetail(patientId: number) {
+function goToDetail(patientId: string) {
   router.push(`/patients/${patientId}`);
 }
 
-async function handleDelete(patientId: number, nom: string, prenom: string) {
+async function handleDelete(patientId: string, nom: string, prenom: string) {
   if (!confirm(`Êtes-vous sûr(e) de vouloir supprimer le patient ${nom} ${prenom} ?`)) {
     return;
   }

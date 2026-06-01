@@ -2,12 +2,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Device {
-    pub device_id: u64,
+    pub device_id: String,
     pub organisation_id: u64,
     pub marque_modele: String,
     pub serial_number: Option<String>,
     pub connection_type: String,
     pub etat: String,
+    pub sync_status: String,
+    pub remote_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

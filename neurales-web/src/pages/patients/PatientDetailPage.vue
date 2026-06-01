@@ -122,7 +122,7 @@ const handleDelete = async () => {
 
   try {
     isDeleting.value = true;
-    const patientId = Number(route.params.id);
+    const patientId = String(route.params.id);
     await patientsStore.deletePatient(patientId);
     await router.push('/patients');
   } catch (error) {
@@ -134,8 +134,8 @@ const handleDelete = async () => {
 };
 
 onMounted(async () => {
-  const patientId = Number(route.params.id);
-  if (!patientId || Number.isNaN(patientId)) {
+  const patientId = String(route.params.id);
+  if (!patientId) {
     apiError.value = "Identifiant patient invalide.";
     return;
   }

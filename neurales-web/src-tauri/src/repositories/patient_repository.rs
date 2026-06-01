@@ -1,62 +1,131 @@
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use rusqlite::{params, Connection};
 
 use crate::models::patient::{CreatePatientRequest, Patient, UpdatePatientRequest};
-use crate::storage::json_store::{load_items, save_items};
-
-const PATIENTS_FILE: &str = "patients.json";
+use crate::error::AppError;
 
 pub trait PatientRepository: Send + Sync {
-    fn list(&self) -> Result<Vec<Patient>, String>;
-    fn get_by_id(&self, patient_id: u64) -> Result<Option<Patient>, String>;
-    fn create(&self, payload: CreatePatientRequest) -> Result<Patient, String>;
-    fn update(&self, patient_id: u64, payload: UpdatePatientRequest) -> Result<Option<Patient>, String>;
-    fn delete(&self, patient_id: u64) -> Result<bool, String>;
+    fn list(&self) -> Result<Vec<Patient>, AppError>;
+    fn get_by_id(&self, patient_id: &str) -> Result<Option<Patient>, AppError>;
+    fn create(&self, payload: CreatePatientRequest) -> Result<Patient, AppError>;
+    fn update(&self, patient_id: &str, payload: UpdatePatientRequest) -> Result<Option<Patient>, AppError>;
+    fn delete(&self, patient_id: &str) -> Result<bool, AppError>;
+    fn get_pending(&self) -> Result<Vec<Patient>, AppError>;
+    fn resolve_sync(&self, local_id: &str, remote_id: Option<String>, status: &str) -> Result<(), AppError>;
 }
 
-pub struct InMemoryPatientRepository {
-    next_id: AtomicU64,
-    items: Mutex<Vec<Patient>>,
+pub struct SqlitePatientRepository {
+    conn: Mutex<Connection>,
 }
 
-impl InMemoryPatientRepository {
-    pub fn new() -> Self {
-        let items = load_items::<Patient>(PATIENTS_FILE).unwrap_or_default();
-        let next_id = items.iter().map(|item| item.patient_id).max().unwrap_or(0) + 1;
+impl SqlitePatientRepository {
+    pub fn new(db_path: &str) -> Self {
+        let conn = Connection::open(db_path).expect("Impossible d'ouvrir la base de données SQLite");
+        
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS patients (
+                patient_id TEXT PRIMARY KEY,
+                identifiant_interne TEXT NOT NULL,
+                nom TEXT NOT NULL,
+                prenom TEXT NOT NULL,
+                date_naissance TEXT,
+                numero_securite_sociale TEXT,
+                sexe TEXT,
+                service TEXT,
+                medecin_referent TEXT,
+                remarque TEXT,
+                notes TEXT,
+                organisation_id INTEGER NOT NULL,
+                sync_status TEXT NOT NULL DEFAULT 'pending_insert',
+                remote_id TEXT
+            )",
+            [],
+        ).expect("Impossible de créer la table patients");
 
         Self {
-            next_id: AtomicU64::new(next_id),
-            items: Mutex::new(items),
+            conn: Mutex::new(conn),
         }
     }
 }
 
-impl PatientRepository for InMemoryPatientRepository {
-    fn list(&self) -> Result<Vec<Patient>, String> {
-        let items = self
-            .items
-            .lock()
-            .map_err(|_| "patient repository lock poisoned".to_string())?;
-        Ok(items.clone())
+impl PatientRepository for SqlitePatientRepository {
+    fn list(&self) -> Result<Vec<Patient>, AppError> {
+        let conn = self.conn.lock().map_err(|_| AppError::Internal("lock poisoned".into()))?;
+        let mut stmt = conn.prepare("SELECT patient_id, identifiant_interne, nom, prenom, date_naissance, numero_securite_sociale, sexe, service, medecin_referent, remarque, notes, organisation_id, sync_status, remote_id FROM patients WHERE sync_status != 'pending_delete'")?;
+        
+        let iter = stmt.query_map([], |row| {
+            Ok(Patient {
+                patient_id: row.get(0)?,
+                identifiant_interne: row.get(1)?,
+                nom: row.get(2)?,
+                prenom: row.get(3)?,
+                date_naissance: row.get(4)?,
+                numero_securite_sociale: row.get(5)?,
+                sexe: row.get(6)?,
+                service: row.get(7)?,
+                medecin_referent: row.get(8)?,
+                remarque: row.get(9)?,
+                notes: row.get(10)?,
+                organisation_id: row.get::<_, i64>(11)? as u64,
+                sync_status: row.get(12)?,
+                remote_id: row.get(13)?,
+            })
+        })?;
+
+        let mut items = Vec::new();
+        for item in iter {
+            items.push(item?);
+        }
+        Ok(items)
     }
 
-    fn get_by_id(&self, patient_id: u64) -> Result<Option<Patient>, String> {
-        let items = self
-            .items
-            .lock()
-            .map_err(|_| "patient repository lock poisoned".to_string())?;
-        Ok(items.iter().find(|p| p.patient_id == patient_id).cloned())
+    fn get_by_id(&self, patient_id: &str) -> Result<Option<Patient>, AppError> {
+        let conn = self.conn.lock().map_err(|_| AppError::Internal("lock poisoned".into()))?;
+        let mut stmt = conn.prepare("SELECT patient_id, identifiant_interne, nom, prenom, date_naissance, numero_securite_sociale, sexe, service, medecin_referent, remarque, notes, organisation_id, sync_status, remote_id FROM patients WHERE patient_id = ?1 AND sync_status != 'pending_delete'")?;
+        
+        let mut iter = stmt.query_map(params![patient_id], |row| {
+            Ok(Patient {
+                patient_id: row.get(0)?,
+                identifiant_interne: row.get(1)?,
+                nom: row.get(2)?,
+                prenom: row.get(3)?,
+                date_naissance: row.get(4)?,
+                numero_securite_sociale: row.get(5)?,
+                sexe: row.get(6)?,
+                service: row.get(7)?,
+                medecin_referent: row.get(8)?,
+                remarque: row.get(9)?,
+                notes: row.get(10)?,
+                organisation_id: row.get::<_, i64>(11)? as u64,
+                sync_status: row.get(12)?,
+                remote_id: row.get(13)?,
+            })
+        })?;
+
+        if let Some(item) = iter.next() {
+            Ok(Some(item?))
+        } else {
+            Ok(None)
+        }
     }
 
-    fn create(&self, payload: CreatePatientRequest) -> Result<Patient, String> {
-        let mut items = self
-            .items
-            .lock()
-            .map_err(|_| "patient repository lock poisoned".to_string())?;
+    fn create(&self, payload: CreatePatientRequest) -> Result<Patient, AppError> {
+        let conn = self.conn.lock().map_err(|_| AppError::Internal("lock poisoned".into()))?;
+        let organisation_id: i64 = 1;
+        let patient_id = uuid::Uuid::new_v4().to_string();
 
-        let patient = Patient {
-            patient_id: self.next_id.fetch_add(1, Ordering::Relaxed),
-            organisation_id: 1,
+        conn.execute(
+            "INSERT INTO patients (patient_id, identifiant_interne, nom, prenom, date_naissance, numero_securite_sociale, sexe, service, medecin_referent, remarque, notes, organisation_id, sync_status, remote_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            params![
+                patient_id, payload.identifiant_interne, payload.nom, payload.prenom, payload.date_naissance,
+                payload.numero_securite_sociale, payload.sexe, payload.service, payload.medecin_referent,
+                payload.remarque, payload.notes, organisation_id, "pending_insert", None::<String>
+            ],
+        )?;
+
+        Ok(Patient {
+            patient_id,
+            organisation_id: organisation_id as u64,
             identifiant_interne: payload.identifiant_interne,
             nom: payload.nom,
             prenom: payload.prenom,
@@ -67,73 +136,107 @@ impl PatientRepository for InMemoryPatientRepository {
             medecin_referent: payload.medecin_referent,
             remarque: payload.remarque,
             notes: payload.notes,
-            created_at: "2026-04-20T00:00:00Z".to_string(),
+            sync_status: "pending_insert".to_string(),
+            remote_id: None,
+        })
+    }
+
+    fn update(&self, patient_id: &str, payload: UpdatePatientRequest) -> Result<Option<Patient>, AppError> {
+        let mut patient = match self.get_by_id(patient_id)? {
+            Some(p) => p,
+            None => return Ok(None),
         };
 
-        items.push(patient.clone());
-        save_items(PATIENTS_FILE, &items)?;
-        Ok(patient)
-    }
+        if let Some(val) = payload.identifiant_interne { patient.identifiant_interne = val; }
+        if let Some(val) = payload.nom { patient.nom = val; }
+        if let Some(val) = payload.prenom { patient.prenom = val; }
+        if let Some(val) = payload.date_naissance { patient.date_naissance = Some(val); }
+        if let Some(val) = payload.numero_securite_sociale { patient.numero_securite_sociale = Some(val); }
+        if let Some(val) = payload.sexe { patient.sexe = Some(val); }
+        if let Some(val) = payload.service { patient.service = Some(val); }
+        if let Some(val) = payload.medecin_referent { patient.medecin_referent = Some(val); }
+        if let Some(val) = payload.remarque { patient.remarque = Some(val); }
+        if let Some(val) = payload.notes { patient.notes = Some(val); }
 
-    fn update(&self, patient_id: u64, payload: UpdatePatientRequest) -> Result<Option<Patient>, String> {
-        let mut items = self
-            .items
-            .lock()
-            .map_err(|_| "patient repository lock poisoned".to_string())?;
-
-        let updated = items.iter_mut().find(|p| p.patient_id == patient_id).map(|patient| {
-            if let Some(value) = payload.identifiant_interne {
-                patient.identifiant_interne = value;
-            }
-            if let Some(value) = payload.nom {
-                patient.nom = value;
-            }
-            if let Some(value) = payload.prenom {
-                patient.prenom = value;
-            }
-            if let Some(value) = payload.date_naissance {
-                patient.date_naissance = Some(value);
-            }
-            if let Some(value) = payload.numero_securite_sociale {
-                patient.numero_securite_sociale = Some(value);
-            }
-            if let Some(value) = payload.sexe {
-                patient.sexe = Some(value);
-            }
-            if let Some(value) = payload.service {
-                patient.service = Some(value);
-            }
-            if let Some(value) = payload.medecin_referent {
-                patient.medecin_referent = Some(value);
-            }
-            if let Some(value) = payload.remarque {
-                patient.remarque = Some(value);
-            }
-            if let Some(value) = payload.notes {
-                patient.notes = Some(value);
-            }
-            patient.clone()
-        });
-
-        if updated.is_some() {
-            save_items(PATIENTS_FILE, &items)?;
+        if patient.sync_status != "pending_insert" {
+            patient.sync_status = "pending_update".to_string();
         }
 
-        Ok(updated)
+        let conn = self.conn.lock().map_err(|_| AppError::Internal("lock poisoned".into()))?;
+        conn.execute(
+            "UPDATE patients SET
+                identifiant_interne = ?1, nom = ?2, prenom = ?3, date_naissance = ?4,
+                numero_securite_sociale = ?5, sexe = ?6, service = ?7, medecin_referent = ?8,
+                remarque = ?9, notes = ?10, sync_status = ?11
+            WHERE patient_id = ?12",
+            params![
+                patient.identifiant_interne, patient.nom, patient.prenom, patient.date_naissance,
+                patient.numero_securite_sociale, patient.sexe, patient.service, patient.medecin_referent,
+                patient.remarque, patient.notes, patient.sync_status, patient_id
+            ],
+        )?;
+
+        Ok(Some(patient))
     }
 
-    fn delete(&self, patient_id: u64) -> Result<bool, String> {
-        let mut items = self
-            .items
-            .lock()
-            .map_err(|_| "patient repository lock poisoned".to_string())?;
+    fn delete(&self, patient_id: &str) -> Result<bool, AppError> {
+        let conn = self.conn.lock().map_err(|_| AppError::Internal("lock poisoned".into()))?;
+        
+        let mut stmt = conn.prepare("SELECT sync_status FROM patients WHERE patient_id = ?1")?;
+        let status: Option<String> = stmt.query_row(params![patient_id], |row| row.get(0)).ok();
+        
+        let changes = if let Some(st) = status {
+            if st == "pending_insert" {
+                conn.execute("DELETE FROM patients WHERE patient_id = ?1", params![patient_id])?
+            } else {
+                conn.execute("UPDATE patients SET sync_status = 'pending_delete' WHERE patient_id = ?1", params![patient_id])?
+            }
+        } else {
+            0
+        };
+        Ok(changes > 0)
+    }
 
-        let before = items.len();
-        items.retain(|p| p.patient_id != patient_id);
-        let deleted = items.len() != before;
-        if deleted {
-            save_items(PATIENTS_FILE, &items)?;
+    fn get_pending(&self) -> Result<Vec<Patient>, AppError> {
+        let conn = self.conn.lock().map_err(|_| AppError::Internal("lock poisoned".into()))?;
+        let mut stmt = conn.prepare("SELECT patient_id, identifiant_interne, nom, prenom, date_naissance, numero_securite_sociale, sexe, service, medecin_referent, remarque, notes, organisation_id, sync_status, remote_id FROM patients WHERE sync_status != 'synced'")?;
+        
+        let iter = stmt.query_map([], |row| {
+            Ok(Patient {
+                patient_id: row.get(0)?,
+                identifiant_interne: row.get(1)?,
+                nom: row.get(2)?,
+                prenom: row.get(3)?,
+                date_naissance: row.get(4)?,
+                numero_securite_sociale: row.get(5)?,
+                sexe: row.get(6)?,
+                service: row.get(7)?,
+                medecin_referent: row.get(8)?,
+                remarque: row.get(9)?,
+                notes: row.get(10)?,
+                organisation_id: row.get::<_, i64>(11)? as u64,
+                sync_status: row.get(12)?,
+                remote_id: row.get(13)?,
+            })
+        })?;
+
+        let mut items = Vec::new();
+        for item in iter {
+            items.push(item?);
         }
-        Ok(deleted)
+        Ok(items)
+    }
+
+    fn resolve_sync(&self, local_id: &str, remote_id: Option<String>, status: &str) -> Result<(), AppError> {
+        let conn = self.conn.lock().map_err(|_| AppError::Internal("lock poisoned".into()))?;
+        if status == "deleted" {
+            conn.execute("DELETE FROM patients WHERE patient_id = ?1", params![local_id])?;
+        } else {
+            conn.execute(
+                "UPDATE patients SET sync_status = ?1, remote_id = ?2 WHERE patient_id = ?3",
+                params![status, remote_id, local_id],
+            )?;
+        }
+        Ok(())
     }
 }

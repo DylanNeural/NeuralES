@@ -232,7 +232,7 @@ const loadRecentSessionsData = async () => {
   
   for (const session of sessions) {
     const patientId = session.patient_id;
-    const patient = patientsStore.items.find(p => p.patient_id === patientId);
+    const patient = patientsStore.items.find(p => String(p.patient_id) === String(patientId));
     const patientName = patient ? `${patient.prenom} ${patient.nom}` : `Patient #${patientId}`;
     const initials = patientName
       .split(' ')
@@ -286,19 +286,19 @@ const sessionsByDay = computed(() => {
     const daysAgo = Math.floor((today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
     if (daysAgo >= 0 && daysAgo < 7) {
       const dayIndex = (7 - daysAgo - 1) % 7;
-      counts[dayIndex]++;
+      counts[dayIndex] = (counts[dayIndex] ?? 0) + 1;
     }
   });
   
   return days.map((day, index) => ({
     day,
-    count: counts[index],
-    percent: Math.min(100, (counts[index] / 15) * 100),
+    count: counts[index] ?? 0,
+    percent: Math.min(100, ((counts[index] ?? 0) / 15) * 100),
   }));
 });
 
 const totalSessionsThisWeek = computed(() => {
-  return sessionsByDay.value.reduce((sum, day) => sum + day.count, 0);
+  return sessionsByDay.value.reduce((sum, day) => sum + (day.count ?? 0), 0);
 });
 
 // Stats par objectif

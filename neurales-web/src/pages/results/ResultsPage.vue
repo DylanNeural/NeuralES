@@ -94,15 +94,15 @@ function goToCreate() {
   router.push('/results/new');
 }
 
-function goToDetail(sessionId: number) {
+function goToDetail(sessionId: string) {
   router.push(`/results/${sessionId}`);
 }
 
-function goToEdit(sessionId: number) {
+function goToEdit(sessionId: string) {
   router.push(`/results/${sessionId}/edit`);
 }
 
-async function handleDelete(sessionId: number) {
+async function handleDelete(sessionId: string) {
   if (!confirm('Êtes-vous sûr(e) de vouloir supprimer cette session ?')) {
     return;
   }

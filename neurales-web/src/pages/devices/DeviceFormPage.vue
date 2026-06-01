@@ -142,7 +142,7 @@ const errors = reactive({
 onMounted(async () => {
   if (isEdit) {
     try {
-      const deviceId = Number(route.params.id)
+      const deviceId = String(route.params.id)
       const device = await deviceStore.fetchDeviceById(deviceId)
       form.marque_modele = device.marque_modele
       form.serial_number = device.serial_number || ''
@@ -212,7 +212,7 @@ const handleSubmit = async () => {
   try {
     const payload = buildPayload()
     if (isEdit) {
-      await deviceStore.updateDevice(Number(route.params.id), payload)
+      await deviceStore.updateDevice(String(route.params.id), payload)
     } else {
       await deviceStore.createDevice(payload)
     }

@@ -88,7 +88,7 @@ const isDeleting = ref(false)
 
 onMounted(async () => {
   try {
-    const deviceId = Number(route.params.id)
+    const deviceId = String(route.params.id)
     await deviceStore.fetchDeviceById(deviceId)
   } catch (err) {
     console.error('Erreur lors du chargement:', err)
@@ -132,7 +132,7 @@ const handleDelete = async () => {
 
   try {
     isDeleting.value = true
-    const deviceId = Number(route.params.id)
+    const deviceId = String(route.params.id)
     await deviceStore.deleteDevice(deviceId)
     await router.push('/devices')
   } catch (error) {
@@ -143,7 +143,7 @@ const handleDelete = async () => {
 }
 
 const goToEdit = () => {
-  const deviceId = Number(route.params.id)
+  const deviceId = String(route.params.id)
   router.push(`/devices/${deviceId}/edit`)
 }
 </script>

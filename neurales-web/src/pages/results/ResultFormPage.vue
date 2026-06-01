@@ -77,8 +77,8 @@
             ID Patient
           </label>
           <input
-            v-model.number="form.patient_id"
-            type="number"
+            v-model="form.patient_id"
+            type="text"
             placeholder="Identifiant du patient"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
           />
@@ -90,8 +90,8 @@
             ID Dispositif
           </label>
           <input
-            v-model.number="form.device_id"
-            type="number"
+            v-model="form.device_id"
+            type="text"
             placeholder="Identifiant du dispositif"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
           />
@@ -151,7 +151,7 @@ import AppCard from "@/components/ui/AppCard.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppAlert from "@/components/ui/AppAlert.vue";
 import { useResultsStore } from "@/stores/results.store";
-import { validateSessionName, validateDate, validateDuration, hasErrors } from "@/utils/form-validation";
+import { validateSessionName, validateDate, hasErrors } from "@/utils/form-validation";
 
 const route = useRoute();
 const router = useRouter();
@@ -166,8 +166,8 @@ const form = reactive({
   mode: "",
   started_at: "",
   ended_at: "",
-  patient_id: null as number | null,
-  device_id: null as number | null,
+  patient_id: null as string | null,
+  device_id: null as string | null,
   notes: "",
   app_version: "",
 });
@@ -239,14 +239,14 @@ const handleSubmit = async () => {
       mode: form.mode,
       started_at: form.started_at,
       ended_at: form.ended_at || undefined,
-      patient_id: form.patient_id,
-      device_id: form.device_id,
+      patient_id: form.patient_id ?? undefined,
+      device_id: form.device_id ?? undefined,
       notes: form.notes,
       app_version: form.app_version,
     };
 
     if (isEdit.value) {
-      const sessionId = Number(route.params.id);
+      const sessionId = String(route.params.id);
       await resultsStore.updateSession(sessionId, payload);
       await router.push(`/results/${sessionId}`);
     } else {
@@ -263,7 +263,7 @@ const handleSubmit = async () => {
 
 onMounted(async () => {
   if (isEdit.value) {
-    const sessionId = Number(route.params.id);
+    const sessionId = String(route.params.id);
     try {
       await resultsStore.fetchSessionById(sessionId);
       const session = resultsStore.current;

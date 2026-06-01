@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Select-String -Path \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\neurales-web\\\\src-tauri\\\\src\\\\lib.rs\" -Pattern \"Builder|setup|manage|handler\" -AllMatches)",
+      "Bash(Get-Content \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\neurales-web\\\\src-tauri\\\\src\\\\main.rs\")"
+    ]
+  }
+}

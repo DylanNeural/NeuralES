@@ -113,7 +113,7 @@ const handleDelete = async () => {
 
   try {
     isDeleting.value = true;
-    const sessionId = Number(route.params.id);
+    const sessionId = String(route.params.id);
     await resultsStore.deleteSession(sessionId);
     await router.push('/results');
   } catch (error) {
@@ -124,8 +124,8 @@ const handleDelete = async () => {
   }
 };
 onMounted(async () => {
-  const sessionId = Number(route.params.id);
-  if (!sessionId || Number.isNaN(sessionId)) {
+  const sessionId = String(route.params.id);
+  if (!sessionId) {
     apiError.value = "Identifiant de session invalide.";
     return;
   }

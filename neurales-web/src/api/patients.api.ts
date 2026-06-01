@@ -50,7 +50,7 @@ export async function createPatient(payload: PatientCreatePayload) {
 
 export async function listPatients(params?: { limit?: number; offset?: number }) {
   if (isDesktopRuntime()) {
-    return desktopInvoke<PatientListItem[]>("list_patients", { params });
+    return desktopInvoke<PatientListItem[]>("list_patients");
   }
   const { data } = await http.get<PatientListItem[]>("/patients", { params });
   return data;

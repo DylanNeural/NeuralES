@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import * as DevicesAPI from '@/api/devices.api'
 
 export interface Device {
-  device_id: number
+  device_id: string
   marque_modele: string
   serial_number?: string | null
   connection_type: string
@@ -30,7 +30,7 @@ export const useDeviceStore = defineStore('device', () => {
     isLoading.value = true
     error.value = null
     try {
-      items.value = (await DevicesAPI.listDevices({ limit, offset })) || []
+      items.value = ((await DevicesAPI.listDevices({ limit, offset })) as any) || []
     } catch (err: any) {
       error.value = toErrorMessage(err, 'Erreur lors du chargement des dispositifs')
       throw err
@@ -39,11 +39,11 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
-  const fetchDeviceById = async (deviceId: number) => {
+  const fetchDeviceById = async (deviceId: string) => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await DevicesAPI.getDeviceById(deviceId)
+      const response = (await DevicesAPI.getDeviceById(deviceId as any)) as any
       if (!response) throw new Error('Dispositif introuvable')
       current.value = response
       return response
@@ -59,7 +59,7 @@ export const useDeviceStore = defineStore('device', () => {
     isLoading.value = true
     error.value = null
     try {
-      const device = await DevicesAPI.createDevice(payload)
+      const device = (await DevicesAPI.createDevice(payload as any)) as any
       items.value.push(device)
       return device
     } catch (err: any) {
@@ -70,11 +70,11 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
-  const updateDevice = async (deviceId: number, payload: Partial<DevicePayload>) => {
+  const updateDevice = async (deviceId: string, payload: Partial<DevicePayload>) => {
     isLoading.value = true
     error.value = null
     try {
-      const device = await DevicesAPI.updateDevice(deviceId, payload)
+      const device = (await DevicesAPI.updateDevice(deviceId as any, payload as any)) as any
       if (!device) throw new Error('Dispositif introuvable')
       const index = items.value.findIndex(d => d.device_id === deviceId)
       if (index !== -1) {
@@ -92,11 +92,11 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
-  const deleteDevice = async (deviceId: number) => {
+  const deleteDevice = async (deviceId: string) => {
     isLoading.value = true
     error.value = null
     try {
-      await DevicesAPI.deleteDevice(deviceId)
+      await DevicesAPI.deleteDevice(deviceId as any)
       items.value = items.value.filter(d => d.device_id !== deviceId)
       if (current.value?.device_id === deviceId) {
         current.value = null

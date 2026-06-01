@@ -217,7 +217,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import AppCard from '@/components/ui/AppCard.vue';
 import Brain3D from '@/components/Brain3D.vue';
 import EEGChartCanvas from '@/components/EEGChartCanvas.vue';

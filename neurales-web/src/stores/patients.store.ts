@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import * as PatientsAPI from "@/api/patients.api";
 
 export interface Patient {
-  patient_id: number;
+  patient_id: string;
   identifiant_interne: string;
   nom: string;
   prenom: string;
@@ -15,6 +15,7 @@ export interface Patient {
   remarque?: string;
   notes?: string;
   organisation_id: number;
+  created_at?: string;
 }
 
 export interface PatientCreatePayload {
@@ -44,7 +45,7 @@ export const usePatientsStore = defineStore("patients", () => {
     isLoading.value = true;
     error.value = null;
     try {
-      items.value = (await PatientsAPI.listPatients({ limit, offset })) || [];
+      items.value = ((await PatientsAPI.listPatients({ limit, offset })) as any) || [];
     } catch (err: any) {
       error.value = err.response?.data?.detail || "Erreur lors du chargement";
       throw err;
@@ -53,11 +54,11 @@ export const usePatientsStore = defineStore("patients", () => {
     }
   };
 
-  const fetchPatientById = async (patientId: number): Promise<Patient> => {
+  const fetchPatientById = async (patientId: string): Promise<Patient> => {
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await PatientsAPI.getPatientById(patientId);
+      const response = (await PatientsAPI.getPatientById(patientId as any)) as any;
       if (!response) throw new Error("Patient introuvable");
       current.value = response;
       return response;
@@ -73,7 +74,7 @@ export const usePatientsStore = defineStore("patients", () => {
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await PatientsAPI.createPatient(payload);
+      const response = (await PatientsAPI.createPatient(payload as any)) as any;
       items.value.unshift(response);
       return response;
     } catch (err: any) {
@@ -85,13 +86,13 @@ export const usePatientsStore = defineStore("patients", () => {
   };
 
   const updatePatient = async (
-    patientId: number,
+    patientId: string,
     payload: Partial<PatientCreatePayload>
   ): Promise<Patient> => {
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await PatientsAPI.updatePatient(patientId, payload);
+      const response = (await PatientsAPI.updatePatient(patientId as any, payload as any)) as any;
       if (!response) throw new Error("Patient introuvable");
       const index = items.value.findIndex((p) => p.patient_id === patientId);
       if (index >= 0) items.value[index] = response;
@@ -105,11 +106,11 @@ export const usePatientsStore = defineStore("patients", () => {
     }
   };
 
-  const deletePatient = async (patientId: number): Promise<void> => {
+  const deletePatient = async (patientId: string): Promise<void> => {
     isLoading.value = true;
     error.value = null;
     try {
-      await PatientsAPI.deletePatient(patientId);
+      await PatientsAPI.deletePatient(patientId as any);
       items.value = items.value.filter((p) => p.patient_id !== patientId);
       if (current.value?.patient_id === patientId) current.value = null;
     } catch (err: any) {
