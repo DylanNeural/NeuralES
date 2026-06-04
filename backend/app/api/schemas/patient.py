@@ -58,6 +58,9 @@ class PatientListResponse(BaseModel):
     prenom: str
     date_naissance: date | None
     numero_securite_sociale: str | None
+    sexe: str | None
+    service: str | None
+    medecin_referent: str | None
 
     class Config:
         from_attributes = True

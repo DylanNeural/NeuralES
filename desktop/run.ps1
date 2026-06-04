@@ -74,7 +74,7 @@ Write-Host ""
 # Démarrer l'application
 $repoRoot = Resolve-Path "$PSScriptRoot\.."
 try {
-    python app\main.py
+    python -m app.main
 } finally {
     Write-Host "" 
     Write-Host "Nettoyage des caches Python..." -ForegroundColor Yellow

@@ -2,7 +2,20 @@
   "permissions": {
     "allow": [
       "Bash(Select-String -Path \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\neurales-web\\\\src-tauri\\\\src\\\\lib.rs\" -Pattern \"Builder|setup|manage|handler\" -AllMatches)",
-      "Bash(Get-Content \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\neurales-web\\\\src-tauri\\\\src\\\\main.rs\")"
+      "Bash(Get-Content \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\neurales-web\\\\src-tauri\\\\src\\\\main.rs\")",
+      "PowerShell(Start-Process \"cmd.exe\" -ArgumentList '/k \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\backend\\\\.venv\\\\Scripts\\\\python.exe\" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000' -WorkingDirectory \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\backend\")",
+      "PowerShell(Start-Process -FilePath \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\desktop\\\\venv\\\\Scripts\\\\python.exe\" -ArgumentList \"-m\", \"app.main\" -WorkingDirectory \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\desktop\")",
+      "PowerShell(Test-NetConnection -ComputerName 51.178.30.35 -Port 22 -WarningAction SilentlyContinue)",
+      "PowerShell(Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/k cd /d c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\desktop && .\\\\venv\\\\Scripts\\\\python.exe -m app.main 2>&1\" -WindowStyle Normal)",
+      "Bash(pip install *)",
+      "Bash(python \"c:\\\\Users\\\\Dylan\\\\Desktop\\\\Side\\\\NeuralES\\\\docs\\\\generate_slides.py\")",
+      "Bash(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 debian@51.178.30.35 \"echo OK\")",
+      "Bash(powershell -Command \"Test-NetConnection -ComputerName 127.0.0.1 -Port 5433 -InformationLevel Quiet 2>&1\")",
+      "Bash(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -v debian@51.178.30.35 \"echo OK\")",
+      "Bash(ls /c/Users/Dylan/.ssh/ 2>&1)",
+      "Read(//c/Users/Dylan/.ssh//**)",
+      "Bash(ssh-keygen -t ed25519 -f /c/Users/Dylan/.ssh/id_ed25519 -N \"\")",
+      "Bash(ssh -o StrictHostKeyChecking=no debian@51.178.30.35 \"sudo -u postgres psql -d neurales -c \\\\\"\\\\d t_utilisateur\\\\\" 2>&1\")"
     ]
   }
 }

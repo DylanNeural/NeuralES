@@ -64,9 +64,19 @@ class MainWindow(QMainWindow):
         # Pages (ordre = index)
         self.pages = {}
         self._add_page("dashboard", DashboardPage())
-        self._add_page("patients_list", PatientsListPage(on_open_patient=self._open_patient, on_new_patient=lambda: self.navigate("patient_create")))
-        self._add_page("patient_create", PatientCreatePage(on_cancel=lambda: self.navigate("patients_list")))
-        self._add_page("patient_detail", PatientDetailPage(on_new_session=lambda: self.navigate("new_session")))
+        self._add_page("patients_list", PatientsListPage(
+            on_open_patient=self._open_patient,
+            on_new_patient=lambda: self.navigate("patient_create"),
+            on_edit_patient=self._edit_patient,
+        ))
+        self._add_page("patient_create", PatientCreatePage(
+            on_cancel=lambda: self.navigate("patients_list"),
+            on_saved=lambda: self.navigate("patients_list"),
+        ))
+        self._add_page("patient_detail", PatientDetailPage(
+            on_new_session=lambda: self.navigate("new_session"),
+            on_back=lambda: self.navigate("patients_list"),
+        ))
 
         self._add_page("sessions_list", SessionsListPage(on_new_session=lambda: self.navigate("new_session")))
         self._add_page("new_session", NewSessionPage(on_cancel=lambda: self.navigate("sessions_list"), on_start=lambda: self.navigate("acquisition")))
@@ -96,9 +106,16 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(self.pages[route])
         self.sidebar.set_active(route)
 
-    def _open_patient(self):
-        # démo : ouvre la fiche patient
+    def _open_patient(self, patient_id=None):
+        detail = self.stack.widget(self.pages["patient_detail"])
+        if patient_id is not None:
+            detail.load_patient(patient_id)
         self.navigate("patient_detail")
+
+    def _edit_patient(self, patient: dict):
+        form = self.stack.widget(self.pages["patient_create"])
+        form.load_patient(patient)
+        self.navigate("patient_create")
 
     def _on_logout(self):
         # Ici tu brancheras ton vrai logout (token etc.)

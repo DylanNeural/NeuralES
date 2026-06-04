@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #050A14; overflow: hidden; }
+  canvas { display: block; }
+  #hint {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    color: #475569; font-family: 'Segoe UI', sans-serif; font-size: 11px;
+    pointer-events: none;
+  }
+  #labels {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="hint">Clic gauche : rotation · Molette : zoom · Clic droit : pan</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "/vendor/three.module.js",
+    "three/addons/": "/vendor/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/OrbitControls.js';
+
+// ── Config ──
+const MAX_PTS      = 800;
+const Z_STEP       = -90;      // distance entre canaux (axe Z)
+const X_RANGE      = 280;      // largeur totale du graphe
+const AMP_SCALE    = 0.6;      // µV → unités scène
+const COLORS       = [0x00D4FF, 0xFFD600, 0x00FF9D, 0xFF6B6B, 0xC084FC, 0xFB923C];
+
+// ── État ──
+const channels  = [];          // ordre d'apparition
+const buffers   = {};          // name → {xs, ys, writeIdx, count}
+const lines     = {};          // name → THREE.Line
+let   tNow      = 0;
+let   ampScale  = null;        // auto-calculé au premier chunk
+
+// ── Renderer ──
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+// ── Scène ──
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050A14);
+scene.fog = new THREE.FogExp2(0x050A14, 0.0018);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(100, 90, 320);
+
+const ctrl = new OrbitControls(camera, renderer.domElement);
+ctrl.enableDamping  = true;
+ctrl.dampingFactor  = 0.06;
+ctrl.target.set(0, 0, -45);
+ctrl.minDistance    = 80;
+ctrl.maxDistance    = 700;
+
+// ── Grille & axes ──
+const gridMat = new THREE.LineBasicMaterial({ color: 0x0F1F35, transparent: true, opacity: 0.8 });
+
+function addLine3(x1,y1,z1, x2,y2,z2, color=0x1E3A5F, opacity=0.5) {
+  const g = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(x1,y1,z1), new THREE.Vector3(x2,y2,z2)
+  ]);
+  const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+  scene.add(new THREE.Line(g, m));
+}
+
+// Grille de fond (plan XY à z=+20)
+for (let x = -X_RANGE/2; x <= X_RANGE/2; x += X_RANGE/8)
+  addLine3(x, -80, 20, x, 80, 20, 0x0D2035, 0.6);
+for (let y = -80; y <= 80; y += 20)
+  addLine3(-X_RANGE/2, y, 20, X_RANGE/2, y, 20, 0x0D2035, 0.6);
+
+// Axe X (temps)
+addLine3(-X_RANGE/2, -80, 0, X_RANGE/2, -80, 0, 0x1E3A5F, 0.9);
+// Axe Y (amplitude) à gauche
+addLine3(-X_RANGE/2, -80, 0, -X_RANGE/2, 60, 0, 0x1E3A5F, 0.9);
+
+// Lumières
+scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+
+// ── Créer un canal ──
+function makeChannel(name) {
+  const idx   = channels.length;
+  channels.push(name);
+  const color = COLORS[idx % COLORS.length];
+  const z     = idx * Z_STEP;
+
+  const positions = new Float32Array(MAX_PTS * 3);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setDrawRange(0, 0);
+
+  const mat = new THREE.LineBasicMaterial({ color, linewidth: 1.5 });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  lines[name] = { line, z };
+
+  buffers[name] = {
+    xs: new Float32Array(MAX_PTS),
+    ys: new Float32Array(MAX_PTS),
+    writeIdx: 0,
+    count: 0,
+  };
+
+  // Label canal (plan orthogonal)
+  addLine3(-X_RANGE/2 - 5, -80, z, -X_RANGE/2 - 5, -75, z, color, 0.9);
+}
+
+// ── Mettre à jour la géométrie d'un canal ──
+function refreshLine(name) {
+  const buf  = buffers[name];
+  const info = lines[name];
+  if (!info) return;
+
+  const geo  = info.line.geometry;
+  const pos  = geo.attributes.position.array;
+  const n    = buf.count;
+  const w    = buf.writeIdx;
+  const z    = info.z;
+
+  for (let i = 0; i < n; i++) {
+    const idx = (w - n + i + MAX_PTS) % MAX_PTS;
+    const t   = buf.xs[idx];
+    const amp = buf.ys[idx];
+    const x   = ((t - tNow) / 10.0) * X_RANGE;   // temps relatif → X
+    const y   = amp * (ampScale || AMP_SCALE);
+    pos[i*3]   = x;
+    pos[i*3+1] = y;
+    pos[i*3+2] = z;
+  }
+  geo.setDrawRange(0, n);
+  geo.attributes.position.needsUpdate = true;
+}
+
+// ── Auto-scale amplitude ──
+function computeScale(samples) {
+  let maxAbs = 0;
+  for (const ch of samples)
+    for (const v of ch)
+      if (Math.abs(v) > maxAbs) maxAbs = Math.abs(v);
+  if (maxAbs > 0) ampScale = 55 / maxAbs;  // 55 unités = hauteur cible
+  console.log('[Chart3D] ampScale =', ampScale, '(maxAbs =', maxAbs, ')');
+}
+
+// ── API Python → JS ──
+window.addSamples = (data) => {
+  const { channels: chs, samples, t0, sfreq } = data;
+  const dt = 1.0 / sfreq;
+  const nSamp = samples[0]?.length || 0;
+  tNow = t0 + nSamp * dt;
+
+  // Auto-scale au premier chunk
+  if (!ampScale) computeScale(samples);
+
+  chs.forEach((name, ci) => {
+    if (!buffers[name]) makeChannel(name);
+    const buf = buffers[name];
+    const chSamples = samples[ci];
+
+    for (let i = 0; i < chSamples.length; i++) {
+      buf.xs[buf.writeIdx] = t0 + i * dt;
+      buf.ys[buf.writeIdx] = chSamples[i];
+      buf.writeIdx = (buf.writeIdx + 1) % MAX_PTS;
+      if (buf.count < MAX_PTS) buf.count++;
+    }
+    refreshLine(name);
+  });
+};
+
+window.clearChart = () => {
+  Object.values(buffers).forEach(b => { b.count = 0; b.writeIdx = 0; });
+  Object.values(lines).forEach(({ line }) => line.geometry.setDrawRange(0, 0));
+};
+
+// ── Render ──
+(function animate() {
+  requestAnimationFrame(animate);
+  ctrl.update();
+  renderer.render(scene, camera);
+})();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
