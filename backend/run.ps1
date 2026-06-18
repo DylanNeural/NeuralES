@@ -6,6 +6,12 @@ Set-Location -Path $PSScriptRoot
 # Ajouter PostgreSQL bin au PATH pour cette session
 $env:Path = 'C:\Program Files\PostgreSQL\18\bin;' + $env:Path
 
+# Créer venv si absent
+if (-not (Test-Path ".\venv\Scripts\Activate.ps1")) {
+    Write-Host "Creation du venv..." -ForegroundColor Yellow
+    python -m venv venv
+}
+
 # Activer venv
 & ".\venv\Scripts\Activate.ps1"
 
