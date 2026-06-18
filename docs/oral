@@ -1,0 +1,21 @@
+1 : presenter le projet a l'oral
+    - Application d'analyse et d'exploitation de signaux EEG,
+    EEG = micro variation de tension entre zones neuronales
+    Phase 1 : Detecter la fatigue cognitive, 
+    Phase 2 : Controle d'objet simple, 
+
+rediger les spécifications
+    - Besoin Technique :
+        - Un frontend dans un framework web récent (moderniser le monde médical (Vue typeScript))
+        - Integrer les nouvelles technologies 3D (THREE.js)
+        - Un backend distant pour le multi front 
+    - Besoin fonctionnels :
+
+        - Gerer des patiens
+        - Gerer des sessions
+        - Prévoir une intégration IA
+
+
+git hub 
+
+outil gestion de projet
