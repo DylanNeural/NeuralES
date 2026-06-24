@@ -56,7 +56,7 @@ def get_result(
 
 @router.get("", response_model=list[SessionListResponse])
 def list_results(
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     repo=Depends(get_repo),
     current_user: dict = Depends(get_current_user),
@@ -73,7 +73,7 @@ def list_results(
 @router.get("/patient/{patient_id}", response_model=list[SessionListResponse])
 def list_results_by_patient(
     patient_id: int,
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     repo=Depends(get_repo),
     current_user: dict = Depends(get_current_user),

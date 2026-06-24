@@ -1,10 +1,10 @@
 <template>
   <div class="eeg-chart">
     <div class="eeg-chart__header">
-      <div class="eeg-chart__title">Lecture EEG ({{ channelsCountLabel }})</div>
+      <div class="eeg-chart__channels">{{ channelsCountLabel }}</div>
       <div class="eeg-chart__meta">
         <span class="eeg-chart__dot" :class="statusClass"></span>
-        {{ statusText }} • fenetre 10 s
+        {{ statusText }} • fenêtre 10 s
       </div>
     </div>
     <div class="eeg-chart__plot">
@@ -120,7 +120,7 @@ function draw() {
   }
 
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#0d1117";
   ctx.fillRect(0, 0, w, h);
 
   if (!xs || ys.length === 0) {
@@ -139,7 +139,7 @@ function draw() {
   const ampPx = rowH * 0.35;
   const gain = maxAbsRaw > 0 ? ampPx / maxAbsRaw : 1;
 
-  ctx.strokeStyle = "rgba(141,153,174,0.25)";
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
   ctx.lineWidth = 1;
   for (let c = 0; c < ch; c += 1) {
     const y = padT + c * rowH + rowH / 2;
@@ -151,12 +151,12 @@ function draw() {
 
   for (let c = 0; c < ch; c += 1) {
     const yTop = padT + c * rowH;
-    ctx.fillStyle = "rgba(141,153,174,0.06)";
+    ctx.fillStyle = "rgba(255,255,255,0.02)";
     ctx.fillRect(padL, yTop, plotW, rowH);
   }
 
   ctx.font = "12px sans-serif";
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = "#94a3b8";
   for (let c = 0; c < ch; c += 1) {
     const y = padT + c * rowH + rowH / 2 + 4;
     ctx.fillText(channelNames.value[c] ?? `Ch ${c + 1}`, 8, y);
@@ -166,7 +166,7 @@ function draw() {
     const row = ys[c];
     if (!row || row.length === 0) continue;
     const y0 = padT + c * rowH + rowH / 2;
-    ctx.strokeStyle = `hsl(${Math.round((c / Math.max(1, ch)) * 300)}, 70%, 45%)`;
+    ctx.strokeStyle = `hsl(${Math.round((c / Math.max(1, ch)) * 300)}, 80%, 65%)`;
     ctx.lineWidth = 1.6;
     ctx.beginPath();
     for (let i = 0; i < row.length; i += 1) {
@@ -249,15 +249,15 @@ onBeforeUnmount(() => {
   justify-content: space-between;
 }
 
-.eeg-chart__title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1a1b26;
+.eeg-chart__channels {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
 }
 
 .eeg-chart__meta {
   font-size: 0.75rem;
-  color: #8d99ae;
+  color: #94a3b8;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -284,9 +284,9 @@ onBeforeUnmount(() => {
 
 .eeg-chart__plot {
   height: 440px;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(141, 153, 174, 0.25);
+  border-radius: 12px;
+  background: #0d1117;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 

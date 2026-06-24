@@ -36,7 +36,7 @@ Write-Host "Launching SSH tunnel in background..." -ForegroundColor Yellow
 
 # Tunnel SSH en background avec plink — PassThru pour pouvoir le fermer proprement
 $plinkProcess = Start-Process -FilePath $plinkPath `
-    -ArgumentList "-batch -pw $SSHPassword -L ${LocalPort}:$RemoteDB -N $SSHUser@$SSHHost -P $SSHPort" `
+    -ArgumentList "-batch -pw $SSHPassword -hostkey `"SHA256:YRUcnGwEaESpnHnmouUadaesNrcfwN2SW1NZp/aXYUE`" -L ${LocalPort}:$RemoteDB -N $SSHUser@$SSHHost -P $SSHPort" `
     -WindowStyle Hidden -PassThru
 
 Start-Sleep -Seconds 2
