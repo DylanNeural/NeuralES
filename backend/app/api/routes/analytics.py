@@ -19,15 +19,12 @@ async def get_session_quality(
     """Récupère la qualité du signal pour une session."""
     session = db.query(SessionModel).filter(
         SessionModel.session_id == session_id,
-        SessionModel.organisation_id == current_user.organisation_id,
-        SessionModel.deleted_at.is_(None),
+        SessionModel.organisation_id == current_user["organisation_id"],
     ).first()
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Calcul simplifié de la qualité basée sur la durée et présence de données
-    # En prod, ce serait un calcul complexe basé sur les données EEG
     base_quality = 75
 
     # Bonus si la session est complète (has ended_at)
@@ -68,14 +65,12 @@ async def get_session_eeg_data(
     """
     session = db.query(SessionModel).filter(
         SessionModel.session_id == session_id,
-        SessionModel.organisation_id == current_user.organisation_id,
-        SessionModel.deleted_at.is_(None),
+        SessionModel.organisation_id == current_user["organisation_id"],
     ).first()
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Génère des données EEG simulées (en prod ce serait des vraies données)
     import random
 
     # 8 électrodes EEG
@@ -105,14 +100,12 @@ async def get_session_fatigue_score(
     """Récupère le score de fatigue estimé pour une session."""
     session = db.query(SessionModel).filter(
         SessionModel.session_id == session_id,
-        SessionModel.organisation_id == current_user.organisation_id,
-        SessionModel.deleted_at.is_(None),
+        SessionModel.organisation_id == current_user["organisation_id"],
     ).first()
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Calcul simplifié du score de fatigue basé sur le mode et l'heure
     import random
 
     base_fatigue = 50
