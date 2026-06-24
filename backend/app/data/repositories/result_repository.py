@@ -63,6 +63,16 @@ class SessionRepository:
         )
         return self.db.execute(stmt).scalars().all()
 
+    def list_by_organisation(self, organisation_id: int, limit: int = 50, offset: int = 0) -> list[SessionModel]:
+        stmt = (
+            select(SessionModel)
+            .where(SessionModel.organisation_id == organisation_id)
+            .order_by(SessionModel.session_id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return self.db.execute(stmt).scalars().all()
+
     def update(self, session_id: int, **fields) -> SessionModel | None:
         session = self.get_by_id(session_id)
         if not session:
