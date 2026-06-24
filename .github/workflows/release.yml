@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NeuralES ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## NeuralES ${{ steps.version.outputs.VERSION }}
+
+            Voir le [CHANGELOG](CHANGELOG.md) pour le détail des changements.
+
+            ### Installation rapide
+            ```powershell
+            git clone https://github.com/DylanNeural/NeuralES.git
+            cd NeuralES
+            .\setup.ps1
+            ```
+          draft: false
+          prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
