@@ -12,19 +12,27 @@ export default {
       },
       colors: {
         primary: {
-          DEFAULT: '#2B2D42', // Couleur principale de la maquette
-          light: '#8D99AE',
-          dark: '#1A1B26',
+          DEFAULT: '#6366F1',
+          light: '#94A3B8',
+          dark: '#0F172A',
+          muted: '#EEF2FF',
+          ring: '#C7D2FE',
         },
         accent: {
-          DEFAULT: '#EF233C',
+          DEFAULT: '#EF4444',
         },
         background: {
-          DEFAULT: '#F8F9FB',
+          DEFAULT: '#F8FAFC',
         },
       },
       borderRadius: {
-        xl: '1rem',
+        xl: '0.75rem',
+        '2xl': '1rem',
+        '3xl': '1.5rem',
+      },
+      boxShadow: {
+        card: '0 1px 3px 0 rgba(0,0,0,0.05), 0 1px 2px -1px rgba(0,0,0,0.03)',
+        elevated: '0 4px 24px -4px rgba(0,0,0,0.12), 0 2px 8px -4px rgba(0,0,0,0.08)',
       },
     },
   },

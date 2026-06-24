@@ -1,108 +1,72 @@
 <template>
-  <div class="space-y-8">
-    <div class="flex items-center gap-4 mb-6">
-      <router-link to="/devices">
-        <AppButton variant="secondary" class="!px-3">← Retour</AppButton>
-      </router-link>
-      <h1 class="text-3xl font-bold text-primary-dark">
+  <div class="max-w-lg space-y-6">
+    <div class="flex items-center gap-3">
+      <AppButton @click="() => router.push('/devices')">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Retour
+      </AppButton>
+      <h2 class="text-xl font-semibold text-slate-900">
         {{ isEdit ? 'Modifier le dispositif' : 'Nouveau dispositif' }}
-      </h1>
+      </h2>
     </div>
 
-    <div class="card">
-      <form @submit.prevent="handleSubmit" class="space-y-6">
-        <!-- Marque / Modèle -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            Marque / Modèle <span class="text-red-500">*</span>
-          </label>
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-card p-6">
+      <form @submit.prevent="handleSubmit" class="space-y-5">
+        <div class="form-group">
+          <label class="label">Marque / Modèle <span class="text-red-500">*</span></label>
           <input
             v-model="form.marque_modele"
+            class="input"
             type="text"
             placeholder="Ex: Emotiv EPOC X"
-            class="w-full px-4 py-2 border border-primary-light/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             required
-            @input="() => { const err = validateDeviceName(form.marque_modele); errors.marque_modele = err.length > 0 ? err.join(' ') : ''; }"
-            @blur="() => { const err = validateDeviceName(form.marque_modele); errors.marque_modele = err.length > 0 ? err.join(' ') : ''; }"
+            @input="() => { errors.marque_modele = validateDeviceName(form.marque_modele).join(' '); }"
+            @blur="() => { errors.marque_modele = validateDeviceName(form.marque_modele).join(' '); }"
           />
-          <p v-if="errors.marque_modele" class="text-red-600 text-sm mt-1">
-            {{ errors.marque_modele }}
-          </p>
+          <p v-if="errors.marque_modele" class="text-xs text-red-600 mt-1">{{ errors.marque_modele }}</p>
         </div>
 
-        <!-- Numéro de série -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            Numéro de série
-          </label>
-          <input
-            v-model="form.serial_number"
-            type="text"
-            placeholder="Ex: SN123456789"
-            class="w-full px-4 py-2 border border-primary-light/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+        <div class="form-group">
+          <label class="label">Numéro de série</label>
+          <input v-model="form.serial_number" class="input" type="text" placeholder="Ex: SN123456789" />
         </div>
 
-        <!-- Type de connexion -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            Type de connexion <span class="text-red-500">*</span>
-          </label>
-          <select
-            v-model="form.connection_type"
-            class="w-full px-4 py-2 border border-primary-light/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            required
-            @change="validateConnectionType"
-          >
+        <div class="form-group">
+          <label class="label">Type de connexion <span class="text-red-500">*</span></label>
+          <select v-model="form.connection_type" class="input" required @change="validateConnectionType">
             <option value="">Sélectionner un type...</option>
             <option value="usb">USB</option>
             <option value="bluetooth">Bluetooth</option>
             <option value="ethernet">Ethernet</option>
             <option value="wifi">Wi-Fi</option>
           </select>
-          <p v-if="errors.connection_type" class="text-red-600 text-sm mt-1">
-            {{ errors.connection_type }}
-          </p>
+          <p v-if="errors.connection_type" class="text-xs text-red-600 mt-1">{{ errors.connection_type }}</p>
         </div>
 
-        <!-- État -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            État <span class="text-red-500">*</span>
-          </label>
-          <select
-            v-model="form.etat"
-            class="w-full px-4 py-2 border border-primary-light/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            required
-            @change="validateEtat"
-          >
+        <div class="form-group">
+          <label class="label">État <span class="text-red-500">*</span></label>
+          <select v-model="form.etat" class="input" required @change="validateEtat">
             <option value="">Sélectionner un état...</option>
             <option value="actif">Actif</option>
             <option value="inactif">Inactif</option>
             <option value="defaillant">Défaillant</option>
             <option value="maintenance">Maintenance</option>
           </select>
-          <p v-if="errors.etat" class="text-red-600 text-sm mt-1">
-            {{ errors.etat }}
-          </p>
+          <p v-if="errors.etat" class="text-xs text-red-600 mt-1">{{ errors.etat }}</p>
         </div>
 
-        <!-- Error Message -->
-        <div v-if="error" class="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p class="text-red-800">{{ error }}</p>
+        <div v-if="error" class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          {{ error }}
         </div>
 
-        <!-- Actions -->
-        <div class="flex gap-4 justify-end pt-4 border-t border-primary-light/20">
+        <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
           <router-link to="/devices">
-            <AppButton variant="secondary">Annuler</AppButton>
+            <AppButton type="button">Annuler</AppButton>
           </router-link>
-          <AppButton 
-            variant="primary" 
-            type="submit"
-            :loading="isSubmitting"
-          >
-            {{ isEdit ? 'Mettre à jour' : 'Créer' }}
+          <AppButton variant="primary" type="submit" :loading="isSubmitting">
+            {{ isEdit ? 'Enregistrer' : 'Créer' }}
           </AppButton>
         </div>
       </form>
@@ -111,120 +75,71 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useDeviceStore } from '@/stores/devices.store'
-import type { DeviceCreatePayload } from '@/api/devices.api'
-import AppButton from '@/components/ui/AppButton.vue'
-import { validateDeviceName, hasErrors } from '@/utils/form-validation'
+import { ref, reactive, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useDeviceStore } from '@/stores/devices.store';
+import type { DeviceCreatePayload } from '@/api/devices.api';
+import AppButton from '@/components/ui/AppButton.vue';
+import { validateDeviceName, hasErrors } from '@/utils/form-validation';
 
-const router = useRouter()
-const route = useRoute()
-const deviceStore = useDeviceStore()
+const router = useRouter();
+const route = useRoute();
+const deviceStore = useDeviceStore();
 
-const isEdit = !!route.params.id
-const isSubmitting = ref(false)
-const error = ref<string | null>(null)
+const isEdit = !!route.params.id;
+const isSubmitting = ref(false);
+const error = ref<string | null>(null);
 
-const form = reactive({
-  marque_modele: '',
-  serial_number: '',
-  connection_type: '',
-  etat: 'actif'
-})
-
-const errors = reactive({
-  marque_modele: '',
-  connection_type: '',
-  etat: ''
-})
+const form = reactive({ marque_modele: '', serial_number: '', connection_type: '', etat: 'actif' });
+const errors = reactive({ marque_modele: '', connection_type: '', etat: '' });
 
 onMounted(async () => {
   if (isEdit) {
     try {
-      const deviceId = String(route.params.id)
-      const device = await deviceStore.fetchDeviceById(deviceId)
-      form.marque_modele = device.marque_modele
-      form.serial_number = device.serial_number || ''
-      form.connection_type = device.connection_type
-      form.etat = device.etat
+      const device = await deviceStore.fetchDeviceById(String(route.params.id));
+      form.marque_modele = device.marque_modele;
+      form.serial_number = device.serial_number || '';
+      form.connection_type = device.connection_type;
+      form.etat = device.etat;
     } catch (err) {
-      error.value = 'Erreur lors du chargement du dispositif'
-      console.error(err)
+      error.value = 'Erreur lors du chargement du dispositif';
     }
   }
-})
+});
+
+const validateConnectionType = () => { errors.connection_type = form.connection_type ? '' : 'Le type de connexion est obligatoire.'; };
+const validateEtat = () => { errors.etat = form.etat ? '' : "L'état est obligatoire."; };
 
 const validateForm = (): boolean => {
-  errors.marque_modele = ''
-  errors.connection_type = ''
-  errors.etat = ''
-  error.value = null
-
-  // Validation marque/modèle
-  const marqueErrors = validateDeviceName(form.marque_modele)
-  if (marqueErrors.length > 0) {
-    errors.marque_modele = marqueErrors.join(' ')
-  }
-
-  // Validation connexion
-  if (!form.connection_type) {
-    errors.connection_type = 'Le type de connexion est obligatoire.'
-  }
-
-  // Validation état
-  if (!form.etat) {
-    errors.etat = "L'état est obligatoire."
-  }
-
-  return !hasErrors(errors)
-}
-
-const validateConnectionType = () => {
-  errors.connection_type = form.connection_type ? '' : 'Le type de connexion est obligatoire.'
-}
-
-const validateEtat = () => {
-  errors.etat = form.etat ? '' : "L'état est obligatoire."
-}
-
-const buildPayload = (): DeviceCreatePayload => ({
-  marque_modele: form.marque_modele.trim(),
-  serial_number: form.serial_number.trim() || undefined,
-  connection_type: form.connection_type,
-  etat: form.etat,
-})
-
-const toErrorMessage = (err: unknown, fallback: string): string => {
-  const e = err as any
-  return e?.response?.data?.detail || e?.message || (typeof e === 'string' ? e : fallback)
-}
+  Object.assign(errors, { marque_modele: '', connection_type: '', etat: '' });
+  error.value = null;
+  errors.marque_modele = validateDeviceName(form.marque_modele).join(' ');
+  if (!form.connection_type) errors.connection_type = 'Le type de connexion est obligatoire.';
+  if (!form.etat) errors.etat = "L'état est obligatoire.";
+  return !hasErrors(errors);
+};
 
 const handleSubmit = async () => {
-  if (!validateForm()) {
-    error.value = 'Veuillez corriger les champs invalides'
-    return
-  }
-
-  isSubmitting.value = true
-  error.value = null
-
+  if (!validateForm()) { error.value = 'Veuillez corriger les champs invalides'; return; }
+  isSubmitting.value = true;
+  error.value = null;
   try {
-    const payload = buildPayload()
+    const payload: DeviceCreatePayload = {
+      marque_modele: form.marque_modele.trim(),
+      serial_number: form.serial_number.trim() || undefined,
+      connection_type: form.connection_type,
+      etat: form.etat,
+    };
     if (isEdit) {
-      await deviceStore.updateDevice(String(route.params.id), payload)
+      await deviceStore.updateDevice(String(route.params.id), payload);
     } else {
-      await deviceStore.createDevice(payload)
+      await deviceStore.createDevice(payload);
     }
-    await router.push('/devices')
-  } catch (err: unknown) {
-    error.value = toErrorMessage(err, 'Une erreur est survenue')
-    console.error(err)
+    await router.push('/devices');
+  } catch (err: any) {
+    error.value = err?.response?.data?.detail || err?.message || 'Une erreur est survenue';
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 </script>
-
-<style scoped>
-</style>

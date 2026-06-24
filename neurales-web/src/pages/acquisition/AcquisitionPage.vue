@@ -318,7 +318,6 @@ const streamStatusLabel = computed(() => {
 
 <style scoped>
 .acquisition-page {
-  padding: 2rem;
   max-width: 1920px;
   margin: 0 auto;
   display: flex;

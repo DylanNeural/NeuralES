@@ -1,153 +1,78 @@
 <template>
-  <div class="space-y-8 max-w-3xl mx-auto">
+  <div class="max-w-2xl space-y-6">
     <div class="flex items-center gap-3">
-      <AppButton class="!px-3" @click="goBack">Retour</AppButton>
-      <h1 class="text-3xl font-bold text-primary-dark">
-        {{ isEdit ? 'Modifier' : 'Créer' }} une session
-      </h1>
+      <AppButton @click="goBack">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Retour
+      </AppButton>
+      <h2 class="text-xl font-semibold text-slate-900">
+        {{ isEdit ? 'Modifier la session' : 'Nouvelle session' }}
+      </h2>
     </div>
 
-    <AppAlert
-      v-if="apiError"
-      v-model="showError"
-      variant="error"
-      title="Erreur"
-      :message="apiError"
-    />
+    <AppAlert v-if="apiError" v-model="showError" variant="error" title="Erreur" :message="apiError" />
 
-    <AppCard>
-      <form @submit.prevent="handleSubmit" class="space-y-6">
-        <!-- Mode -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            Mode *
-          </label>
-          <input
-            v-model="form.mode"
-            type="text"
-            placeholder="Mode de mesure"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-            required
-            @input="validateMode"
-            @blur="validateMode"
-          />
-          <p v-if="errors.mode" class="text-red-600 text-sm mt-1">
-            {{ errors.mode }}
-          </p>
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-card p-6">
+      <form @submit.prevent="handleSubmit" class="space-y-5">
+        <div class="form-group">
+          <label class="label">Mode <span class="text-red-500">*</span></label>
+          <input v-model="form.mode" class="input" type="text" placeholder="fatigue, moteur, attention..." required
+            @input="validateMode" @blur="validateMode" />
+          <p v-if="errors.mode" class="text-xs text-red-600 mt-1">{{ errors.mode }}</p>
         </div>
 
-        <!-- Début -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            Date/Heure début *
-          </label>
-          <input
-            v-model="form.started_at"
-            type="datetime-local"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-            required
-            @input="validateStartDate"
-            @blur="validateStartDate"
-          />
-          <p v-if="errors.started_at" class="text-red-600 text-sm mt-1">
-            {{ errors.started_at }}
-          </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div class="form-group">
+            <label class="label">Date/Heure début <span class="text-red-500">*</span></label>
+            <input v-model="form.started_at" class="input" type="datetime-local" required
+              @input="validateStartDate" @blur="validateStartDate" />
+            <p v-if="errors.started_at" class="text-xs text-red-600 mt-1">{{ errors.started_at }}</p>
+          </div>
+          <div class="form-group">
+            <label class="label">Date/Heure fin</label>
+            <input v-model="form.ended_at" class="input" type="datetime-local"
+              @input="validateEndDate" @blur="validateEndDate" />
+            <p v-if="errors.ended_at" class="text-xs text-red-600 mt-1">{{ errors.ended_at }}</p>
+          </div>
         </div>
 
-        <!-- Fin -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            Date/Heure fin
-          </label>
-          <input
-            v-model="form.ended_at"
-            type="datetime-local"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-            @input="validateEndDate"
-            @blur="validateEndDate"
-          />
-          <p v-if="errors.ended_at" class="text-red-600 text-sm mt-1">
-            {{ errors.ended_at }}
-          </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div class="form-group">
+            <label class="label">ID Patient</label>
+            <input v-model="form.patient_id" class="input" type="text" placeholder="Identifiant du patient" />
+          </div>
+          <div class="form-group">
+            <label class="label">ID Dispositif</label>
+            <input v-model="form.device_id" class="input" type="text" placeholder="Identifiant du dispositif" />
+          </div>
         </div>
 
-        <!-- Patient ID -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            ID Patient
-          </label>
-          <input
-            v-model="form.patient_id"
-            type="text"
-            placeholder="Identifiant du patient"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-          />
+        <div class="form-group">
+          <label class="label">Notes</label>
+          <textarea v-model="form.notes" class="input min-h-[80px] resize-y" placeholder="Observations supplémentaires..."></textarea>
         </div>
 
-        <!-- Device ID -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            ID Dispositif
-          </label>
-          <input
-            v-model="form.device_id"
-            type="text"
-            placeholder="Identifiant du dispositif"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-          />
+        <div class="form-group">
+          <label class="label">Version app</label>
+          <input v-model="form.app_version" class="input" type="text" placeholder="ex: 1.0.0" />
         </div>
 
-        <!-- Notes -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            Notes
-          </label>
-          <textarea
-            v-model="form.notes"
-            placeholder="Notes supplémentaires"
-            rows="4"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-          ></textarea>
-        </div>
-
-        <!-- Version App -->
-        <div>
-          <label class="block text-sm font-semibold text-primary-dark mb-2">
-            Version App
-          </label>
-          <input
-            v-model="form.app_version"
-            type="text"
-            placeholder="ex: 1.0.0"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-          />
-        </div>
-
-        <!-- Boutons -->
-        <div class="flex gap-4 pt-4">
-          <AppButton
-            type="submit"
-            :loading="isLoading"
-          >
-            {{ isEdit ? 'Mettre à jour' : 'Créer' }}
-          </AppButton>
-          <AppButton
-            type="button"
-            variant="secondary"
-            @click="goBack"
-          >
-            Annuler
+        <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+          <AppButton type="button" @click="goBack">Annuler</AppButton>
+          <AppButton variant="primary" type="submit" :loading="isLoading">
+            {{ isEdit ? 'Enregistrer les modifications' : 'Créer la session' }}
           </AppButton>
         </div>
       </form>
-    </AppCard>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import AppCard from "@/components/ui/AppCard.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppAlert from "@/components/ui/AppAlert.vue";
 import { useResultsStore } from "@/stores/results.store";
@@ -162,79 +87,28 @@ const isLoading = ref(false);
 const apiError = ref<string | null>(null);
 const showError = ref(true);
 
-const form = reactive({
-  mode: "",
-  started_at: "",
-  ended_at: "",
-  patient_id: null as string | null,
-  device_id: null as string | null,
-  notes: "",
-  app_version: "",
-});
+const form = reactive({ mode: "", started_at: "", ended_at: "", patient_id: null as string | null, device_id: null as string | null, notes: "", app_version: "" });
+const errors = reactive({ mode: "", started_at: "", ended_at: "" });
 
-const errors = reactive({
-  mode: "",
-  started_at: "",
-  ended_at: "",
-});
+const goBack = () => router.back();
 
-const goBack = () => {
-  router.back();
-};
+const validateMode = () => { errors.mode = validateSessionName(form.mode).join(" "); };
+const validateStartDate = () => { errors.started_at = validateDate(form.started_at).join(" "); };
+const validateEndDate = () => { errors.ended_at = form.ended_at ? validateDate(form.ended_at).join(" ") : ""; };
 
-const validateMode = () => {
-  const errors_list = validateSessionName(form.mode);
-  errors.mode = errors_list.length > 0 ? errors_list.join(" ") : "";
-};
-
-const validateStartDate = () => {
-  const errors_list = validateDate(form.started_at);
-  errors.started_at = errors_list.length > 0 ? errors_list.join(" ") : "";
-};
-
-const validateEndDate = () => {
-  if (!form.ended_at) {
-    errors.ended_at = "";
-    return;
-  }
-  const errors_list = validateDate(form.ended_at);
-  errors.ended_at = errors_list.length > 0 ? errors_list.join(" ") : "";
-};
-
-const validateForm = (): boolean => {
-  errors.mode = "";
-  errors.started_at = "";
-
-  // Validation mode (nom de session)
-  const modeErrors = validateSessionName(form.mode);
-  if (modeErrors.length > 0) {
-    errors.mode = modeErrors.join(" ");
-  }
-
-  // Validation date début
-  const startDateErrors = validateDate(form.started_at);
-  if (startDateErrors.length > 0) {
-    errors.started_at = startDateErrors.join(" ");
-  }
-
-  // Validation date fin si présente
-  if (form.ended_at) {
-    const endDateErrors = validateDate(form.ended_at);
-    if (endDateErrors.length > 0) {
-      errors.ended_at = endDateErrors.join(" ");
-    }
-  }
-
+const validateForm = () => {
+  Object.assign(errors, { mode: "", started_at: "", ended_at: "" });
+  errors.mode = validateSessionName(form.mode).join(" ");
+  errors.started_at = validateDate(form.started_at).join(" ");
+  if (form.ended_at) errors.ended_at = validateDate(form.ended_at).join(" ");
   return !hasErrors(errors);
 };
 
 const handleSubmit = async () => {
   if (!validateForm()) return;
-
   try {
     isLoading.value = true;
     apiError.value = null;
-
     const payload = {
       mode: form.mode,
       started_at: form.started_at,
@@ -244,18 +118,15 @@ const handleSubmit = async () => {
       notes: form.notes,
       app_version: form.app_version,
     };
-
     if (isEdit.value) {
-      const sessionId = String(route.params.id);
-      await resultsStore.updateSession(sessionId, payload);
-      await router.push(`/results/${sessionId}`);
+      await resultsStore.updateSession(String(route.params.id), payload);
+      await router.push(`/results/${route.params.id}`);
     } else {
-      const newSession = await resultsStore.createSession(payload);
-      await router.push(`/results/${newSession.session_id}`);
+      const s = await resultsStore.createSession(payload);
+      await router.push(`/results/${s.session_id}`);
     }
-  } catch (error: any) {
-    apiError.value = error.response?.data?.detail || "Erreur lors de l'opération";
-    console.error("Erreur:", error);
+  } catch (err: any) {
+    apiError.value = err.response?.data?.detail || "Erreur lors de l'opération";
   } finally {
     isLoading.value = false;
   }
@@ -263,20 +134,19 @@ const handleSubmit = async () => {
 
 onMounted(async () => {
   if (isEdit.value) {
-    const sessionId = String(route.params.id);
     try {
-      await resultsStore.fetchSessionById(sessionId);
-      const session = resultsStore.current;
-      if (session) {
-        form.mode = session.mode;
-        form.started_at = session.started_at;
-        form.ended_at = session.ended_at || "";
-        form.patient_id = session.patient_id || null;
-        form.device_id = session.device_id || null;
-        form.notes = session.notes || "";
-        form.app_version = session.app_version || "";
+      await resultsStore.fetchSessionById(String(route.params.id));
+      const s = resultsStore.current;
+      if (s) {
+        form.mode = s.mode;
+        form.started_at = s.started_at;
+        form.ended_at = s.ended_at || "";
+        form.patient_id = s.patient_id || null;
+        form.device_id = s.device_id || null;
+        form.notes = s.notes || "";
+        form.app_version = s.app_version || "";
       }
-    } catch (error) {
+    } catch {
       apiError.value = "Erreur lors du chargement de la session";
     }
   }
