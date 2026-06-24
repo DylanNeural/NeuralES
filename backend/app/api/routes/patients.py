@@ -3,8 +3,6 @@ from sqlalchemy.orm import Session
 
 from app.data.db import get_db
 from app.data.repositories.patient_repository import PatientRepository
-from app.data.repositories.service_repository import ServiceRepository
-from app.data.repositories.medecin_repository import MedecinRepository
 from app.api.routes.auth import get_current_user
 
 from app.api.schemas.patient import (

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import typing
 from datetime import date, datetime
 from sqlalchemy import String, TIMESTAMP, Integer, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -40,7 +41,6 @@ class PatientModel(Base):
     service_ref: Mapped[ServiceModel | None] = relationship("ServiceModel", foreign_keys=[service_id], back_populates="patients")
     medecin_ref: Mapped[MedecinModel | None] = relationship("MedecinModel", foreign_keys=[medecin_referent_id], back_populates="patients")
 
-import typing
 if typing.TYPE_CHECKING:
     from app.data.models.service_model import ServiceModel
     from app.data.models.medecin_model import MedecinModel
