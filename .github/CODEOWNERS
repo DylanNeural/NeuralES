@@ -1,0 +1,17 @@
+# Responsables du code par zone
+# Ces personnes sont automatiquement demandées en review sur les PRs.
+
+# Responsable global
+* @DylanNeural
+
+# Backend FastAPI
+/backend/ @DylanNeural
+
+# Frontend Vue 3 + Tauri
+/neurales-web/ @DylanNeural
+
+# Desktop PyQt
+/desktop/ @DylanNeural
+
+# Documentation
+/docs/ @DylanNeural
