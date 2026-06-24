@@ -82,7 +82,7 @@ function draw() {
 
   if (history.length < 2) {
     if (history.length === 1) {
-      const { t, score } = history[0];
+      const { t, score } = history[0]!;
       const x = PAD.left + (t / maxT) * cW;
       const y = PAD.top + cH * (1 - score / 100);
       ctx.fillStyle = scoreColor(score);
@@ -97,8 +97,8 @@ function draw() {
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   for (let i = 1; i < history.length; i++) {
-    const prev = history[i - 1];
-    const curr = history[i];
+    const prev = history[i - 1]!;
+    const curr = history[i]!;
     const x1 = PAD.left + (prev.t / maxT) * cW;
     const y1 = PAD.top + cH * (1 - prev.score / 100);
     const x2 = PAD.left + (curr.t / maxT) * cW;
@@ -110,7 +110,7 @@ function draw() {
     ctx.stroke();
   }
 
-  const last = history[history.length - 1];
+  const last = history[history.length - 1]!;
   const lx = PAD.left + (last.t / maxT) * cW;
   const ly = PAD.top + cH * (1 - last.score / 100);
   ctx.fillStyle = scoreColor(last.score);

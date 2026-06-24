@@ -86,7 +86,7 @@ function jetColor(t: number): [number, number, number] {
 
 function pushSpectrum(spec: Float32Array) {
   for (let t = TIME_ROWS - 1; t > 0; t--) powerHistory[t]!.set(powerHistory[t - 1]!);
-  powerHistory[0].set(spec);
+  powerHistory[0]!.set(spec);
   updateGeometry();
 }
 
@@ -98,12 +98,12 @@ function updateGeometry() {
   let maxPow = 1e-12;
   for (let t = 0; t < TIME_ROWS; t++)
     for (let f = 0; f < FREQ_BINS; f++)
-      if (powerHistory[t][f] > maxPow) maxPow = powerHistory[t][f];
+      if ((powerHistory[t]![f] ?? 0) > maxPow) maxPow = powerHistory[t]![f] ?? 0;
 
   for (let t = 0; t < TIME_ROWS; t++) {
     for (let f = 0; f < FREQ_BINS; f++) {
       const vi = t * FREQ_BINS + f;
-      const norm = powerHistory[t][f] / maxPow;
+      const norm = (powerHistory[t]![f] ?? 0) / maxPow;
       pos[vi * 3 + 1] = norm * 28;
       const [r, g, b] = jetColor(norm);
       col[vi * 3] = r; col[vi * 3 + 1] = g; col[vi * 3 + 2] = b;
@@ -201,10 +201,10 @@ function setupScene(el: HTMLDivElement) {
       new THREE.Vector3(x, -0.5, 0),
       new THREE.Vector3(x, -0.5, -D),
     ]);
-    scene.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x1e2d40 })));
+    scene!.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x1e2d40 })));
     const lbl = makeLabel(label);
     lbl.position.set(x, -3.5, 5);
-    scene.add(lbl);
+    scene!.add(lbl);
   });
 
   const animate = () => {
