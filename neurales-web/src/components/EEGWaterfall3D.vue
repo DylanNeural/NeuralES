@@ -36,8 +36,8 @@ function fft(re: Float32Array, im: Float32Array) {
     for (; j & bit; bit >>= 1) j ^= bit;
     j ^= bit;
     if (i < j) {
-      let t = re[i]; re[i] = re[j]; re[j] = t;
-      t = im[i]; im[i] = im[j]; im[j] = t;
+      let t = re[i]!; re[i] = re[j]!; re[j] = t;
+      t = im[i]!; im[i] = im[j]!; im[j] = t;
     }
   }
   for (let len = 2; len <= N; len <<= 1) {
@@ -46,9 +46,9 @@ function fft(re: Float32Array, im: Float32Array) {
     for (let i = 0; i < N; i += len) {
       let cr = 1, ci = 0;
       for (let j = 0; j < (len >> 1); j++) {
-        const ur = re[i + j], ui = im[i + j];
-        const vr = re[i + j + (len >> 1)] * cr - im[i + j + (len >> 1)] * ci;
-        const vi = re[i + j + (len >> 1)] * ci + im[i + j + (len >> 1)] * cr;
+        const ur = re[i + j]!; const ui = im[i + j]!;
+        const vr = re[i + j + (len >> 1)]! * cr - im[i + j + (len >> 1)]! * ci;
+        const vi = re[i + j + (len >> 1)]! * ci + im[i + j + (len >> 1)]! * cr;
         re[i + j] = ur + vr; im[i + j] = ui + vi;
         re[i + j + (len >> 1)] = ur - vr; im[i + j + (len >> 1)] = ui - vi;
         const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
@@ -70,7 +70,7 @@ function computeSpectrum(): Float32Array {
   const out = new Float32Array(FREQ_BINS);
   for (let i = 0; i < FREQ_BINS; i++) {
     const bin = Math.round(i * maxBin / (FREQ_BINS - 1));
-    out[i] = Math.sqrt(re[bin] ** 2 + im[bin] ** 2) / NFFT;
+    out[i] = Math.sqrt(re[bin]! ** 2 + im[bin]! ** 2) / NFFT;
   }
   return out;
 }
@@ -85,7 +85,7 @@ function jetColor(t: number): [number, number, number] {
 }
 
 function pushSpectrum(spec: Float32Array) {
-  for (let t = TIME_ROWS - 1; t > 0; t--) powerHistory[t].set(powerHistory[t - 1]);
+  for (let t = TIME_ROWS - 1; t > 0; t--) powerHistory[t]!.set(powerHistory[t - 1]!);
   powerHistory[0].set(spec);
   updateGeometry();
 }
