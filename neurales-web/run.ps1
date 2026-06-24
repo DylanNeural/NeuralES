@@ -74,18 +74,6 @@ Write-Host ""
 try {
     npm run dev
 } finally {
-    Write-Host "" 
-    Write-Host "Nettoyage des caches Node..." -ForegroundColor Yellow
-
-    # Nettoyer les caches de build
-    $cacheDirs = @("dist", "dist-ssr", ".vite", "node_modules/.cache", "node_modules/.vite")
-    foreach ($dirName in $cacheDirs) {
-        $fullPath = Join-Path $PSScriptRoot $dirName
-        if (Test-Path $fullPath) {
-            Remove-Item -Recurse -Force $fullPath -ErrorAction SilentlyContinue
-            Write-Host "Supprime : $dirName" -ForegroundColor DarkGray
-        }
-    }
-    
-    Write-Host "Nettoyage termine." -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Serveur Vite arrete." -ForegroundColor Green
 }

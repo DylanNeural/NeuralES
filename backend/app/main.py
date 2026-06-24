@@ -1,3 +1,6 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -5,11 +8,25 @@ from fastapi.responses import HTMLResponse
 from app.config import settings
 from app.api import auth_router, organisations_router, eeg_router, health_router, acquisition_router, patients_router, results_router, devices_router, analytics_router
 
+logger = logging.getLogger("neurales")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if not settings.auth_cookie_secure and not settings.debug:
+        logger.warning(
+            "SECURITY: AUTH_COOKIE_SECURE is False in a non-debug environment. "
+            "Set AUTH_COOKIE_SECURE=True in production to protect refresh token cookies."
+        )
+    yield
+
+
 # Créer l'app FastAPI
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     debug=settings.debug,
+    lifespan=lifespan,
 )
 
 # CORS middleware

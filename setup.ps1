@@ -81,16 +81,22 @@ Write-Host "[6/6] Configuring environment variables..." -ForegroundColor Yellow
 # Backend .env
 if (-not (Test-Path "backend\.env")) {
     Write-Host "  Creating backend\.env..." -ForegroundColor Gray
-    Copy-Item "backend\.env.example" "backend\.env" -Force
-    Write-Host "  ⚠  Please update backend\.env with your credentials" -ForegroundColor Yellow
+    @"
+DATABASE_URL=postgresql+psycopg2://neurales_user:jp8GJIrdC7L7S55N@localhost:5433/neurales
+AUTH_SECRET_KEY=dev-secret-change-me
+AUTH_COOKIE_SECURE=False
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:1420,http://127.0.0.1:1420,tauri://localhost
+"@ | Out-File "backend\.env" -Encoding UTF8
+    Write-Host "  ✓ backend\.env cree (port 5433 pour tunnel SSH)" -ForegroundColor Green
 }
 
 # Web .env
 if (-not (Test-Path "neurales-web\.env")) {
     Write-Host "  Creating neurales-web\.env..." -ForegroundColor Gray
     @"
-VITE_API_URL=http://localhost:8000
-VITE_WS_URL=ws://localhost:8000
+VITE_API_BASE_URL=http://localhost:8000
+VITE_WS_BASE_URL=ws://localhost:8000
+VITE_APP_NAME=NeuralES
 "@ | Out-File "neurales-web\.env" -Encoding UTF8
 }
 

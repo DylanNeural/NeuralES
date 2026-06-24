@@ -34,13 +34,20 @@ if (-not (Test-Path $plinkPath)) {
 
 Write-Host "Launching SSH tunnel in background..." -ForegroundColor Yellow
 
-# Tunnel SSH en background avec plink
-Start-Process -FilePath $plinkPath -ArgumentList "-batch -pw $SSHPassword -L $LocalPort`:$RemoteDB -N $SSHUser@$SSHHost -P $SSHPort" -WindowStyle Hidden
+# Tunnel SSH en background avec plink — PassThru pour pouvoir le fermer proprement
+$plinkProcess = Start-Process -FilePath $plinkPath `
+    -ArgumentList "-batch -pw $SSHPassword -L ${LocalPort}:$RemoteDB -N $SSHUser@$SSHHost -P $SSHPort" `
+    -WindowStyle Hidden -PassThru
 
-# Attendre un peu que le tunnel soit etabli
 Start-Sleep -Seconds 2
 
-Write-Host "SSH tunnel established in background`n" -ForegroundColor Green
+if ($plinkProcess.HasExited) {
+    Write-Host "ERREUR: Impossible d'etablir le tunnel SSH!" -ForegroundColor Red
+    Write-Host "Verifiez vos cles SSH et la connectivite vers $SSHHost." -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "SSH tunnel etabli (PID: $($plinkProcess.Id))`n" -ForegroundColor Green
 
 # Lancer le backend
 Write-Host "========================================" -ForegroundColor Cyan
@@ -48,7 +55,15 @@ Write-Host "      Launching NeuralES Backend"
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Activer venv et lancer le serveur
 Set-Location $PSScriptRoot
 .\venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+try {
+    python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+} finally {
+    if ($plinkProcess -and !$plinkProcess.HasExited) {
+        Write-Host "Fermeture du tunnel SSH (PID: $($plinkProcess.Id))..." -ForegroundColor Yellow
+        Stop-Process -Id $plinkProcess.Id -Force -ErrorAction SilentlyContinue
+        Write-Host "Tunnel SSH ferme." -ForegroundColor Green
+    }
+}

@@ -5,8 +5,6 @@ from pydantic import BaseModel, Field
 class SessionCreateRequest(BaseModel):
     """Schéma pour créer une session de mesure"""
     mode: str = Field(min_length=1, max_length=20)
-    created_by_user_id: int = Field(gt=0)
-    organisation_id: int = Field(gt=0)
     patient_id: int | None = Field(default=None, gt=0)
     device_id: int | None = Field(default=None, gt=0)
     consent_id: int | None = Field(default=None, gt=0)

@@ -3,8 +3,6 @@ from sqlalchemy.orm import Session
 
 from app.data.db import get_db
 from app.data.repositories.patient_repository import PatientRepository
-from app.data.repositories.service_repository import ServiceRepository
-from app.data.repositories.medecin_repository import MedecinRepository
 from app.api.routes.auth import get_current_user
 
 from app.api.schemas.patient import (
@@ -98,8 +96,12 @@ def update_patient(
     patient_id: int,
     payload: PatientUpdateRequest,
     repo=Depends(get_repo),
+    current_user: dict = Depends(get_current_user),
 ):
     """Mettre à jour un patient"""
+    patient = repo.get_by_id(patient_id)
+    if not patient or patient.organisation_id != current_user["organisation_id"]:
+        raise HTTPException(status_code=404, detail="Patient not found")
     fields = payload.model_dump(exclude_unset=True)
     patient = repo.update(patient_id, **fields)
     if not patient:
@@ -111,28 +113,10 @@ def update_patient(
 def delete_patient(
     patient_id: int,
     repo=Depends(get_repo),
+    current_user: dict = Depends(get_current_user),
 ):
     """Supprimer un patient"""
-    success = repo.delete(patient_id)
-    if not success:
+    patient = repo.get_by_id(patient_id)
+    if not patient or patient.organisation_id != current_user["organisation_id"]:
         raise HTTPException(status_code=404, detail="Patient not found")
-
-
-# ============ REFERENCE DATA ENDPOINTS ============
-
-@router.get("/meta/services", response_model=list[str])
-def list_services(
-    repo=Depends(get_repo),
-    current_user: dict = Depends(get_current_user),
-):
-    """List all distinct services available in the organization"""
-    return repo.list_services(current_user["organisation_id"])
-
-
-@router.get("/meta/medecins", response_model=list[str])
-def list_medecins(
-    repo=Depends(get_repo),
-    current_user: dict = Depends(get_current_user),
-):
-    """List all distinct doctors available in the organization"""
-    return repo.list_medecins(current_user["organisation_id"])
+    repo.soft_delete(patient_id)

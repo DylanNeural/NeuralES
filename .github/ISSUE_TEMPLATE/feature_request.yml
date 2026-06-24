@@ -1,0 +1,59 @@
+name: Feature Request
+description: Proposer une nouvelle fonctionnalité
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de décrire la fonctionnalité que tu souhaites voir ajoutée.
+
+  - type: dropdown
+    id: bloc
+    attributes:
+      label: Bloc RNCP associé
+      description: Quel bloc de compétences cette feature couvre-t-elle ?
+      options:
+        - "Bloc 1 — Conception & sécurité"
+        - "Bloc 2 — Pilotage projet"
+        - "Bloc 3 — Développement"
+        - "Bloc 4 — Échanges de données"
+        - "Non applicable"
+    validations:
+      required: false
+
+  - type: textarea
+    id: user_story
+    attributes:
+      label: User Story
+      placeholder: "En tant que [rôle], je veux [action] afin de [bénéfice]."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critères d'acceptation
+      placeholder: |
+        - [ ] Critère 1
+        - [ ] Critère 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorité
+      options:
+        - Critique
+        - Haute
+        - Moyenne
+        - Basse
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte additionnel
+    validations:
+      required: false
