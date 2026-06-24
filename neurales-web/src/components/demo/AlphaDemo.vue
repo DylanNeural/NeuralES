@@ -63,7 +63,7 @@ function draw() {
   for (let i = 0; i < bufLen; i++) {
     const xi = (i / bufLen) * W;
     const si = (writeIdx - bufLen + i + bufLen * 2) % bufLen;
-    const yi = H / 2 - buf[si] * (H / 2.6);
+    const yi = H / 2 - (buf[si] ?? 0) * (H / 2.6);
     if (i === 0) ctx.moveTo(xi, yi); else ctx.lineTo(xi, yi);
   }
   ctx.stroke();

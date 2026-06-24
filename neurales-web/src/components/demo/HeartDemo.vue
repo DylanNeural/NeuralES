@@ -168,7 +168,7 @@ function draw() {
   for (let i = 0; i < bufLen; i++) {
     const xi = (i / bufLen) * W;
     const sampleIdx = (writeIdx - bufLen + i + bufLen) % bufLen;
-    const v = buf[sampleIdx];
+    const v = buf[sampleIdx] ?? 0;
     const yi = H / 2 - v * (H / 2.8);
     if (i === 0) ctx.moveTo(xi, yi); else ctx.lineTo(xi, yi);
   }

@@ -26,8 +26,8 @@ const expressions = [
 
 let exprIdx = 0;
 let exprTimer = 0;
-let fromExpr = expressions[0];
-let toExpr = expressions[0];
+let fromExpr = expressions[0]!;
+let toExpr = expressions[0]!;
 let exprT = 1;
 
 function ease(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
@@ -237,11 +237,11 @@ onMounted(() => {
   rim.position.set(0, -2, -3);
   scene.add(rim);
 
-  const { jawPivot, leftBrow, rightBrow, leftEye, rightEye, leftCheek, rightCheek, cheekMatL, cheekMatR } = buildFace(scene);
+  const { jawPivot, leftBrow, rightBrow, leftEye, rightEye, cheekMatL, cheekMatR } = buildFace(scene);
 
   exprIdx = 0;
-  fromExpr = expressions[0];
-  toExpr = expressions[1];
+  fromExpr = expressions[0]!;
+  toExpr = expressions[1]!;
   exprT = 0;
   exprTimer = toExpr.dur;
 
@@ -256,7 +256,7 @@ onMounted(() => {
     if (exprTimer <= 0) {
       exprIdx = (exprIdx + 1) % expressions.length;
       fromExpr = toExpr;
-      toExpr = expressions[(exprIdx + 1) % expressions.length];
+      toExpr = expressions[(exprIdx + 1) % expressions.length]!;
       exprTimer = toExpr.dur;
       exprT = 0;
     }

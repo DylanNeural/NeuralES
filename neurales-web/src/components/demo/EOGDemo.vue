@@ -36,7 +36,7 @@ let faceRenderer: THREE.WebGLRenderer | null = null;
 let faceAnimId = 0;
 
 function nextStep() {
-  const step = sequence[seqIdx % sequence.length];
+  const step = sequence[seqIdx % sequence.length]!;
   targetX = step.x;
   targetY = step.y;
   currentLabel.value = step.label;
