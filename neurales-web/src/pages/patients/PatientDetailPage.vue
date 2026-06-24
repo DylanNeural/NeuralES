@@ -1,148 +1,117 @@
-<template>
-  <div class="space-y-8 max-w-3xl mx-auto">
-    <div class="flex items-center gap-3">
-      <AppButton class="!px-3" @click="goBack">Retour</AppButton>
-      <h1 class="text-3xl font-bold text-primary-dark">Détail du patient</h1>
-    </div>
-
-    <AppAlert
-      v-if="apiError"
-      v-model="showError"
-      variant="error"
-      title="Erreur"
-      :message="apiError"
-    />
-
-    <AppCard>
-      <div class="grid gap-4 md:grid-cols-2">
-        <div>
-          <div class="text-xs text-primary-light mb-1">Identifiant interne</div>
-          <div class="text-base font-semibold">{{ patient?.identifiant_interne ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Organisation</div>
-          <div class="text-base font-semibold">{{ patient?.organisation_id ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Nom</div>
-          <div class="text-base font-semibold">{{ patient?.nom ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Prenom</div>
-          <div class="text-base font-semibold">{{ patient?.prenom ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Date de naissance</div>
-          <div class="text-base font-semibold">{{ formatDate(patient?.date_naissance) }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Sexe</div>
-          <div class="text-base font-semibold">{{ patient?.sexe ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">N° securite sociale</div>
-          <div class="text-base font-semibold">{{ patient?.numero_securite_sociale ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Service</div>
-          <div class="text-base font-semibold">{{ patient?.service ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Medecin referent</div>
-          <div class="text-base font-semibold">{{ patient?.medecin_referent ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Remarque</div>
-          <div class="text-base font-semibold">{{ patient?.remarque ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Notes</div>
-          <div class="text-base font-semibold">{{ patient?.notes ?? "-" }}</div>
-        </div>
-        <div>
-          <div class="text-xs text-primary-light mb-1">Cree le</div>
-          <div class="text-base font-semibold">{{ formatDateTime(patient?.created_at) }}</div>
-        </div>
-      </div>
-    </AppCard>
-
-    <!-- Actions -->
-    <div class="flex gap-4 justify-start">
-      <router-link :to="`/patients/${patient?.patient_id}/edit`">
-        <AppButton variant="primary">Modifier</AppButton>
-      </router-link>
-      <AppButton 
-        variant="danger"
-        @click="handleDelete"
-        :loading="isDeleting"
-      >
-        Supprimer
-      </AppButton>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppCard from "@/components/ui/AppCard.vue";
 import AppButton from "@/components/ui/AppButton.vue";
-import AppAlert from "@/components/ui/AppAlert.vue";
 import { usePatientsStore } from "@/stores/patients.store";
 
 const route = useRoute();
 const router = useRouter();
 const patientsStore = usePatientsStore();
 
-const showError = ref(true);
 const apiError = ref<string | null>(null);
 const patient = computed(() => patientsStore.current);
 const isDeleting = ref(false);
 
-function goBack() {
-  router.back();
-}
+function goBack() { router.back(); }
 
 function formatDate(value?: string | null) {
-  if (!value) return "-";
+  if (!value) return "—";
   return value;
 }
 
 function formatDateTime(value?: string | null) {
-  if (!value) return "-";
+  if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString("fr-FR");
 }
 
-const handleDelete = async () => {
-  if (!confirm('Êtes-vous sûr(e) de vouloir supprimer ce patient ?')) {
-    return;
-  }
+const fields = computed(() => [
+  { label: "Identifiant interne", value: patient.value?.identifiant_interne },
+  { label: "Organisation", value: patient.value?.organisation_id },
+  { label: "Nom", value: patient.value?.nom },
+  { label: "Prénom", value: patient.value?.prenom },
+  { label: "Date de naissance", value: formatDate(patient.value?.date_naissance) },
+  { label: "Sexe", value: patient.value?.sexe },
+  { label: "N° sécurité sociale", value: patient.value?.numero_securite_sociale },
+  { label: "Service", value: patient.value?.service },
+  { label: "Médecin référent", value: patient.value?.medecin_referent },
+  { label: "Remarque", value: patient.value?.remarque },
+  { label: "Notes", value: patient.value?.notes },
+  { label: "Créé le", value: formatDateTime(patient.value?.created_at) },
+]);
 
+async function handleDelete() {
+  if (!confirm("Supprimer ce patient ?")) return;
   try {
     isDeleting.value = true;
-    const patientId = String(route.params.id);
-    await patientsStore.deletePatient(patientId);
-    await router.push('/patients');
-  } catch (error) {
-    console.error('Erreur lors de la suppression:', error);
-    apiError.value = 'Erreur lors de la suppression du patient';
+    await patientsStore.deletePatient(String(route.params.id));
+    router.push("/patients");
+  } catch (err) {
+    apiError.value = "Erreur lors de la suppression";
   } finally {
     isDeleting.value = false;
   }
-};
+}
 
 onMounted(async () => {
-  const patientId = String(route.params.id);
-  if (!patientId) {
-    apiError.value = "Identifiant patient invalide.";
-    return;
-  }
+  const id = String(route.params.id);
+  if (!id) { apiError.value = "Identifiant invalide."; return; }
   try {
-    await patientsStore.fetchPatientById(patientId);
-  } catch (err) {
+    await patientsStore.fetchPatientById(id);
+  } catch {
     apiError.value = patientsStore.error ?? "Erreur inconnue.";
   }
 });
 </script>
+
+<template>
+  <div class="max-w-3xl space-y-6 animate-fade-in">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+      <AppButton variant="ghost" size="sm" @click="goBack">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Retour
+      </AppButton>
+      <h1 class="text-2xl font-bold text-foreground">Détail du patient</h1>
+    </div>
+
+    <!-- Error -->
+    <div v-if="apiError" class="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {{ apiError }}
+    </div>
+
+    <!-- Patient header card -->
+    <AppCard v-if="patient">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="h-14 w-14 rounded-2xl bg-primary/20 ring-2 ring-primary/30 flex items-center justify-center text-xl font-bold text-primary shrink-0">
+          {{ (patient.prenom?.[0] || "") + (patient.nom?.[0] || "") }}
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-foreground">{{ patient.prenom }} {{ patient.nom }}</h2>
+          <p class="text-sm text-muted-foreground">{{ patient.identifiant_interne || "—" }}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-for="field in fields" :key="field.label" class="space-y-1">
+          <div class="text-xs text-muted-foreground font-medium uppercase tracking-wide">{{ field.label }}</div>
+          <div class="text-sm font-medium text-foreground">{{ field.value ?? "—" }}</div>
+        </div>
+      </div>
+    </AppCard>
+
+    <!-- Actions -->
+    <div class="flex gap-3">
+      <RouterLink :to="`/patients/${patient?.patient_id}/edit`">
+        <AppButton variant="primary">Modifier</AppButton>
+      </RouterLink>
+      <AppButton variant="danger" :loading="isDeleting" @click="handleDelete">
+        Supprimer
+      </AppButton>
+    </div>
+  </div>
+</template>

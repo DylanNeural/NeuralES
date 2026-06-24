@@ -1,30 +1,110 @@
 @config "../../tailwind.config.ts";
 @import "tailwindcss";
 
+/* ── Design tokens ─────────────────────────────────────────────── */
+:root {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+
+  --card: 240 6% 8%;
+  --card-foreground: 0 0% 98%;
+
+  --popover: 240 6% 8%;
+  --popover-foreground: 0 0% 98%;
+
+  --primary: 263 70% 63%;
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 240 5% 14%;
+  --secondary-foreground: 0 0% 98%;
+
+  --muted: 240 5% 14%;
+  --muted-foreground: 240 4% 56%;
+
+  --accent: 240 5% 14%;
+  --accent-foreground: 0 0% 98%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 240 4% 16%;
+  --input: 240 4% 16%;
+  --ring: 263 70% 63%;
+
+  --sidebar: 240 8% 6%;
+  --sidebar-foreground: 240 4% 56%;
+  --sidebar-border: 240 4% 12%;
+  --sidebar-accent: 263 70% 63%;
+
+  --radius: 0.625rem;
+}
+
+/* ── Base ───────────────────────────────────────────────────────── */
 @layer base {
-  html, body, #app { height: 100%; }
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
   body {
-    @apply bg-background text-primary-dark font-sans;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
   }
 }
 
+/* ── Components ─────────────────────────────────────────────────── */
 @layer components {
-  .card {
-    @apply bg-white rounded-2xl border border-primary-light/30 shadow p-6;
+  /* Glow ring on focus */
+  .focus-ring {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
-  .btn {
-    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-base font-medium border border-primary-light bg-primary-light/10 text-primary-dark hover:bg-primary-light hover:text-white active:scale-95 transition-all duration-150;
+
+  /* Glass card */
+  .glass {
+    backdrop-filter: blur(12px);
+    background: hsl(var(--card) / 0.8);
+    border: 1px solid hsl(var(--border));
   }
-  .btn-primary {
-    @apply border-transparent bg-primary text-white hover:bg-accent hover:text-white;
+
+  /* EEG metric glow badge */
+  .glow-cyan {
+    box-shadow: 0 0 12px 2px rgba(6, 182, 212, 0.35);
   }
-  .btn-danger {
-    @apply border-transparent bg-accent text-white hover:bg-red-700;
+  .glow-violet {
+    box-shadow: 0 0 12px 2px rgba(139, 92, 246, 0.35);
   }
-  .input {
-    @apply w-full rounded-xl border border-primary-light bg-white px-4 py-2 text-base outline-none focus:ring-2 focus:ring-primary-light/50 transition;
+  .glow-emerald {
+    box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.35);
   }
-  .link {
-    @apply text-primary hover:text-accent underline underline-offset-2 transition;
+  .glow-rose {
+    box-shadow: 0 0 12px 2px rgba(244, 63, 94, 0.35);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent;
   }
 }
