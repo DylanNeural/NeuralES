@@ -23,11 +23,4 @@ echo DOCS      : http://localhost:8000/docs
 echo.
 
 REM Démarrer le serveur
-echo Demarrage du serveur Uvicorn (PowerShell)...
-echo.
-echo Une fenetre PowerShell va s'ouvrir. Arrete le serveur avec Ctrl+C dans cette fenetre.
-echo Le nettoyage des caches sera fait automatiquement apres l'arret.
-echo.
-start "NeuralES Backend" /wait powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0run.ps1"
-
-pause
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0run_with_plink.ps1"

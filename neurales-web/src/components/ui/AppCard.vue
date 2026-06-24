@@ -1,13 +1,21 @@
-<template>
-  <div class="card">
-    <slot></slot>
-  </div>
-</template>
-
 <script setup lang="ts">
-// AppCard component (design Figma)
+import { cn } from "@/lib/utils";
+
+const props = defineProps<{
+  class?: string;
+  hover?: boolean;
+}>();
 </script>
 
-<style scoped>
-/* Les styles sont gérés par la classe .card dans main.css */
-</style>
+<template>
+  <div
+    :class="cn(
+      'rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 transition-all duration-200',
+      hover && 'hover:border-primary/40 hover:shadow-primary/10 hover:shadow-lg cursor-pointer',
+      props.class
+    )"
+    v-bind="$attrs"
+  >
+    <slot />
+  </div>
+</template>

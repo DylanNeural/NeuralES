@@ -21,17 +21,27 @@ type ElectrodeSelectionState = {
 	streamMessageSeq: number;
 	qualityByElectrode: Record<string, number>;
 	error: string | null;
+	fatigueHistory: { t: number; score: number }[];
+	activeAlerts: string[];
+	baselineFatigue: number | null;
+	sessionStartTime: number | null;
+	eegDataset: "sleep" | "eegmat";
+	eegSubject: string;
+	eegCondition: "rest" | "task";
+	datasetLabel: string;
 };
 
 function clamp(value: number, min: number, max: number) {
 	return Math.min(max, Math.max(min, value));
 }
 
-function buildWsUrl(sessionId?: string) {
+function buildWsUrl(sessionId?: string, dataset = "sleep", subject = "00", condition = "rest") {
 	const base = (import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:8000") as string;
 	const urlBase = base.startsWith("http") ? base.replace(/^http/, "ws") : base;
 	const normalized = urlBase.replace(/\/$/, "");
-	const wsUrl = sessionId ? `${normalized}/eeg/stream?session_id=${sessionId}` : `${normalized}/eeg/stream`;
+	const params = new URLSearchParams({ dataset, subject, condition });
+	if (sessionId) params.set("session_id", sessionId);
+	const wsUrl = `${normalized}/eeg/stream?${params.toString()}`;
 	console.log("[AcquisitionStore] WebSocket URL:", wsUrl);
 	return wsUrl;
 }
@@ -93,6 +103,14 @@ export const useAcquisitionStore = defineStore("acquisition", {
 		streamMessageSeq: 0,
 		qualityByElectrode: {},
 		error: null,
+		fatigueHistory: [],
+		activeAlerts: [],
+		baselineFatigue: null,
+		sessionStartTime: null,
+		eegDataset: "sleep",
+		eegSubject: "00",
+		eegCondition: "rest",
+		datasetLabel: "Sleep-EDF (SC4001)",
 	}),
 	actions: {
 		toggleElectrode(electrodeId: string) {
@@ -124,11 +142,32 @@ export const useAcquisitionStore = defineStore("acquisition", {
 				}
 			});
 		},
+		setBaseline() {
+			if (this.liveMetrics !== null) {
+				this.baselineFatigue = this.liveMetrics.fatigue_score;
+			}
+		},
+		clearBaseline() {
+			this.baselineFatigue = null;
+		},
+		setEegSource(dataset: "sleep" | "eegmat", subject: string, condition: "rest" | "task") {
+			this.eegDataset = dataset;
+			this.eegSubject = subject;
+			this.eegCondition = condition;
+			if (dataset === "sleep") {
+				this.datasetLabel = "Sleep-EDF (SC4001)";
+			} else {
+				this.datasetLabel = `Sujet ${subject} — ${condition === "rest" ? "Repos" : "Tâche cognitive"}`;
+			}
+		},
 		async startSession() {
 			if (this.isRunning) return;
 			this.error = null;
 			this.latestStreamChunk = null;
 			this.streamMessageSeq = 0;
+			this.fatigueHistory = [];
+			this.activeAlerts = [];
+			this.sessionStartTime = Date.now();
 			try {
 				if (isDesktopRuntime()) {
 					this.sessionId = `desktop-${Date.now()}`;
@@ -188,7 +227,7 @@ export const useAcquisitionStore = defineStore("acquisition", {
 			}
 			this.streamStatus = "connecting";
 			this.syncQualityMap();
-			const wsUrl = buildWsUrl(this.sessionId);
+			const wsUrl = buildWsUrl(this.sessionId, this.eegDataset, this.eegSubject, this.eegCondition);
 			console.log("[AcquisitionStore] Connecting to WebSocket...");
 			ws = new WebSocket(wsUrl);
 			ws.onopen = () => {
@@ -265,6 +304,12 @@ export const useAcquisitionStore = defineStore("acquisition", {
 					100
 				);
 			});
+			const t = this.sessionStartTime ? (Date.now() - this.sessionStartTime) / 1000 : 0;
+			this.fatigueHistory.push({ t, score: payload.fatigue });
+			if (this.fatigueHistory.length > 3600) this.fatigueHistory.shift();
+			if (Array.isArray(payload.alerts) && payload.alerts.length > 0) {
+				this.activeAlerts = payload.alerts;
+			}
 		},
 		disconnectStream() {
 			stopDesktopTicker();
