@@ -5,5 +5,7 @@ from app.data.models.user_model import UserModel
 from app.data.models.refresh_token_model import RefreshTokenModel
 from app.data.models.service_model import ServiceModel
 from app.data.models.medecin_model import MedecinModel
+from app.data.models.device_model import DeviceModel
+from app.data.models.consent_model import ConsentModel
 
-__all__ = ["OrganisationModel", "PatientModel", "SessionModel", "UserModel", "ServiceModel", "MedecinModel", "RefreshTokenModel"]
+__all__ = ["OrganisationModel", "PatientModel", "SessionModel", "UserModel", "ServiceModel", "MedecinModel", "RefreshTokenModel", "DeviceModel", "ConsentModel"]

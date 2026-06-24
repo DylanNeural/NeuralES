@@ -11,11 +11,13 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 interface Props {
   selectedElectrodes?: string[];
   showAxes?: boolean;
+  heatmapData?: Record<string, number>; // electrode name → 0..1 (0=bad/cold, 1=good/hot)
 }
 
 const props = withDefaults(defineProps<Props>(), {
   selectedElectrodes: () => [],
   showAxes: true,
+  heatmapData: () => ({}),
 });
 
 const emit = defineEmits<{
@@ -30,7 +32,11 @@ let camera: THREE.PerspectiveCamera | null = null;
 let controls: OrbitControls | null = null;
 let raf = 0;
 const activeElectrodes = new Set<string>();
-const electrodeMaterials = new Map<string, { active: THREE.Material | THREE.Material[]; inactive: THREE.Material | THREE.Material[] }>();
+const electrodeMaterials = new Map<string, {
+  active: THREE.Material | THREE.Material[];
+  inactive: THREE.Material | THREE.Material[];
+  heatmap: THREE.MeshStandardMaterial;
+}>();
 let loggedElectrodeSize = false;
 const electrodePositions = new Map<string, { start: THREE.Vector3; end: THREE.Vector3; object: THREE.Object3D; delay: number; initialRotation: { x: number; y: number; z: number }; orbitalAngle: number }>();
 let assemblyProgress = 0;
@@ -121,7 +127,8 @@ function setupScene(el: HTMLDivElement) {
             
             const inactiveMat = cloneMaterial(mesh.material as THREE.Material);
             const activeMat = cloneMaterial(electrodeMat);
-            electrodeMaterials.set(name, { active: activeMat, inactive: inactiveMat });
+            const heatmapMat = new THREE.MeshStandardMaterial({ color: 0x334466, metalness: 0.2, roughness: 0.4 });
+            electrodeMaterials.set(name, { active: activeMat, inactive: inactiveMat, heatmap: heatmapMat });
             mesh.material = inactiveMat as any;
 
             // Store initial and final positions for assembly animation
@@ -282,18 +289,27 @@ function setupScene(el: HTMLDivElement) {
   };
 }
 
-watch(
-  () => props.selectedElectrodes,
-  (newSelection) => {
-    // Update all electrode colors based on selection
-    electrodeMaterials.forEach((mats, meshName) => {
-      const electrodeName = electrodeNameMap.get(meshName);
-      const isSelected = electrodeName && newSelection?.includes(electrodeName);
-      
-      const pos = electrodePositions.get(meshName);
-      if (!pos) return;
-      
-      const mesh = pos.object as THREE.Mesh;
+function refreshElectrodeColors() {
+  const hasHeatmap = Object.keys(props.heatmapData ?? {}).length > 0;
+  electrodeMaterials.forEach((mats, meshName) => {
+    const electrodeName = electrodeNameMap.get(meshName) ?? "";
+    const isSelected = props.selectedElectrodes?.includes(electrodeName) ?? false;
+    const pos = electrodePositions.get(meshName);
+    if (!pos) return;
+    const mesh = pos.object as THREE.Mesh;
+
+    if (hasHeatmap) {
+      // Heatmap mode: quality 0=red, 0.5=yellow, 1=green; dim if not selected
+      const q = Math.max(0, Math.min(1, (props.heatmapData ?? {})[electrodeName] ?? 0.5));
+      const r = q < 0.5 ? 1 : 2 * (1 - q);
+      const g = q > 0.5 ? 1 : 2 * q;
+      const bright = isSelected ? 1.0 : 0.22;
+      mats.heatmap.color.setRGB(r * bright, g * bright, 0);
+      mats.heatmap.emissive.setRGB(r * bright * 0.3, g * bright * 0.3, 0);
+      mesh.material = mats.heatmap;
+      activeElectrodes.delete(meshName);
+    } else {
+      // Normal mode: selected=green, inactive=default
       if (isSelected && !activeElectrodes.has(meshName)) {
         activeElectrodes.add(meshName);
         mesh.material = mats.active as any;
@@ -301,8 +317,13 @@ watch(
         activeElectrodes.delete(meshName);
         mesh.material = mats.inactive as any;
       }
-    });
-  },
+    }
+  });
+}
+
+watch(
+  () => [props.selectedElectrodes, props.heatmapData],
+  refreshElectrodeColors,
   { deep: true }
 );
 
