@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from typing import Optional
 import base64
 import hashlib
@@ -16,6 +16,8 @@ from app.config import settings
 from app.data.db import get_db
 from app.data.repositories.user_repository import UserRepository
 from app.data.repositories.refresh_token_repository import RefreshTokenRepository
+from app.data.repositories.patient_repository import PatientRepository
+from app.data.repositories.result_repository import SessionRepository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
@@ -263,3 +265,125 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 def me(current_user: dict = Depends(get_current_user)):
     return current_user
+
+
+# ── Patient access ────────────────────────────────────────────────────────────
+
+class PatientLoginIn(BaseModel):
+    nom: str
+    prenom: str
+    date_naissance: date
+    password: str
+
+
+class PatientOut(BaseModel):
+    patient_id: int
+    nom: str
+    prenom: str
+    date_naissance: Optional[date] = None
+
+
+class SessionOut(BaseModel):
+    session_id: int
+    mode: str
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+def create_patient_access_token(payload: dict) -> str:
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(minutes=settings.auth_access_token_expire_minutes)
+    to_encode = {
+        **payload,
+        "exp": expires,
+        "iat": int(now.timestamp()),
+        "iss": settings.auth_issuer,
+        "aud": settings.auth_audience,
+        "type": "patient_access",
+    }
+    return jwt.encode(to_encode, settings.auth_secret_key, algorithm=settings.auth_algorithm)
+
+
+def get_current_patient(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+):
+    if not credentials or not credentials.credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+    try:
+        payload = decode_token(credentials.credentials)
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    if payload.get("type") != "patient_access":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    patient_id = payload.get("patient_id")
+    if not patient_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    repo = PatientRepository(db)
+    patient = repo.get_by_id(patient_id)
+    if not patient:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Patient not found")
+
+    return patient
+
+
+@router.post("/patient-login", response_model=TokenOut)
+def patient_login(payload: PatientLoginIn, db: Session = Depends(get_db)):
+    repo = PatientRepository(db)
+    patient = repo.get_by_nom_prenom_dob(payload.nom, payload.prenom, payload.date_naissance)
+    if not patient or not patient.password_hash:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if not verify_password(payload.password, patient.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    token = create_patient_access_token({"patient_id": patient.patient_id})
+    return TokenOut(access_token=token)
+
+
+@router.get("/patient/me", response_model=PatientOut)
+def patient_me(patient=Depends(get_current_patient)):
+    return PatientOut(
+        patient_id=patient.patient_id,
+        nom=patient.nom,
+        prenom=patient.prenom,
+        date_naissance=patient.date_naissance,
+    )
+
+
+@router.get("/patient/results", response_model=list[SessionOut])
+def patient_results(patient=Depends(get_current_patient), db: Session = Depends(get_db)):
+    repo = SessionRepository(db)
+    sessions = repo.list_by_patient(patient.patient_id)
+    return [
+        SessionOut(
+            session_id=s.session_id,
+            mode=s.mode,
+            started_at=s.started_at,
+            ended_at=s.ended_at,
+            notes=s.notes,
+        )
+        for s in sessions
+    ]
+
+
+@router.get("/patient/results/{session_id}", response_model=SessionOut)
+def patient_result_detail(
+    session_id: int,
+    patient=Depends(get_current_patient),
+    db: Session = Depends(get_db),
+):
+    repo = SessionRepository(db)
+    session = repo.get_by_id(session_id)
+    if not session or session.patient_id != patient.patient_id:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return SessionOut(
+        session_id=session.session_id,
+        mode=session.mode,
+        started_at=session.started_at,
+        ended_at=session.ended_at,
+        notes=session.notes,
+    )
