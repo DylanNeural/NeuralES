@@ -23,6 +23,8 @@ const router = createRouter({
     { path: "/patients/:id", component: () => import("@/pages/patients/PatientDetailPage.vue") },
     { path: "/patients/:id/edit", component: () => import("@/pages/patients/PatientCreatePage.vue") },
 
+    { path: "/demo", component: () => import("@/pages/demo/DemoPage.vue") },
+
     { path: "/:pathMatch(.*)*", component: () => import("@/pages/NotFound.vue") },
   ],
 });

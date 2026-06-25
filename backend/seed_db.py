@@ -359,6 +359,10 @@ def _get_or_create_patient(
 
 def seed(reset: bool, admin_password: str) -> None:
     with engine.begin() as conn:
+        # Ensure password_hash column exists (idempotent)
+        conn.execute(text(
+            "ALTER TABLE public.t_patient ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);"
+        ))
         if reset:
             conn.execute(
                 text(
@@ -537,6 +541,16 @@ def seed(reset: bool, admin_password: str) -> None:
             remarque="Nouvelle evaluation",
             service_id=service_sommeil_id,
             medecin_referent_id=medecin_petit_id,
+        )
+
+        # Set mobile app passwords for test patients
+        conn.execute(
+            text("UPDATE public.t_patient SET password_hash = :hash WHERE patient_id = :pid"),
+            {"hash": hash_password("patient123"), "pid": patient_id},
+        )
+        conn.execute(
+            text("UPDATE public.t_patient SET password_hash = :hash WHERE patient_id = :pid"),
+            {"hash": hash_password("patient123"), "pid": patient_id_2},
         )
 
         consent_id = conn.execute(

@@ -134,7 +134,7 @@ function selectSource(dataset: "sleep" | "eegmat", subject: string, condition: "
               if (v === 'sleep') selectSource('sleep', '00', 'rest');
               else {
                 const [sub, cond] = v.split('_');
-                selectSource('eegmat', sub, cond as 'rest' | 'task');
+                selectSource('eegmat', sub ?? '00', (cond ?? 'rest') as 'rest' | 'task');
               }
             }"
           >

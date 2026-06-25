@@ -44,6 +44,15 @@ class PatientRepository:
         )
         return self.db.execute(stmt).scalar_one_or_none()
 
+    def get_by_nom_prenom_dob(self, nom: str, prenom: str, date_naissance: date) -> PatientModel | None:
+        stmt = select(PatientModel).where(
+            PatientModel.nom.ilike(nom),
+            PatientModel.prenom.ilike(prenom),
+            PatientModel.date_naissance == date_naissance,
+            PatientModel.deleted_at.is_(None),
+        )
+        return self.db.execute(stmt).scalar_one_or_none()
+
     def get_by_secu(self, numero_securite_sociale: str) -> PatientModel | None:
         stmt = select(PatientModel).where(
             PatientModel.numero_securite_sociale == numero_securite_sociale,

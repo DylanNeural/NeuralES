@@ -1,6 +1,5 @@
 import asyncio
 from pathlib import Path
-from typing import Literal
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from app.api.routes.acquisition import active_sessions
 from app.config import settings
