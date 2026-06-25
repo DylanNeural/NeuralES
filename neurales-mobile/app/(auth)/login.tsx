@@ -52,8 +52,16 @@ export default function LoginScreen() {
       });
       const patient = await getPatientMe(access_token);
       await login(access_token, patient);
-    } catch {
-      Alert.alert("Connexion échouée", "Identifiants incorrects ou compte inexistant.");
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number; data?: { detail?: string } } })?.response?.status;
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const isNetwork = (err as { code?: string })?.code === "ERR_NETWORK" || !(err as { response?: unknown })?.response;
+      console.error("[login] error", status, detail, err);
+      if (isNetwork) {
+        Alert.alert("Erreur réseau", `Impossible de joindre le serveur.\n${process.env.EXPO_PUBLIC_API_URL}`);
+      } else {
+        Alert.alert("Connexion échouée", detail ?? `Erreur ${status ?? "inconnue"}`);
+      }
     } finally {
       setLoading(false);
     }
