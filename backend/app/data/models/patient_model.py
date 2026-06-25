@@ -27,6 +27,7 @@ class PatientModel(Base):
     medecin_referent: Mapped[str | None] = mapped_column(String(100), nullable=True)
     medecin_referent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("t_medecin.medecin_id", ondelete="SET NULL"), nullable=True)
     
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     remarque: Mapped[str | None] = mapped_column(String(500), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(255), nullable=True)
     organisation_id: Mapped[int] = mapped_column(Integer, ForeignKey("t_organisation.organisation_id"), nullable=False)
