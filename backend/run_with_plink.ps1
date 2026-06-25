@@ -56,7 +56,20 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 Set-Location $PSScriptRoot
-.\venv\Scripts\Activate.ps1
+
+# Création du venv si absent
+if (-not (Test-Path ".\venv\Scripts\Activate.ps1")) {
+    Write-Host "Venv absent, creation en cours..." -ForegroundColor Yellow
+    python -m venv venv
+    if (-not $?) { Write-Host "ERREUR: python introuvable. Installez Python 3.11+." -ForegroundColor Red; exit 1 }
+    Write-Host "Installation des dependances..." -ForegroundColor Yellow
+    .\venv\Scripts\pip.exe install -r requirements.txt --quiet
+    Write-Host "Venv pret.`n" -ForegroundColor Green
+}
+
+# Activation du venv
+$env:VIRTUAL_ENV = "$PSScriptRoot\venv"
+$env:PATH = "$PSScriptRoot\venv\Scripts;$env:PATH"
 
 try {
     python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
