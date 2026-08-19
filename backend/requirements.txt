@@ -1,7 +1,7 @@
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
 gunicorn==23.0.0
-mne
+mne==1.12.1
 numpy
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4

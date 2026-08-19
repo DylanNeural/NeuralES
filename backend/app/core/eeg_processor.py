@@ -29,11 +29,23 @@ class EEGProcessor:
 
         if picks is None:
             picks = ["Fpz-Cz", "Pz-Oz"]
-            picks = [ch for ch in picks if ch in raw.ch_names]
-            if not picks:
-                picks = raw.ch_names[:2]
 
-        raw = raw.copy().pick_channels(picks)
+        # Certains exports EDF préfixent les libellés (ex. "EEG Fpz-Cz" au lieu de
+        # "Fpz-Cz") selon la version de MNE/l'origine du fichier -- on résout chaque
+        # pick vers le vrai nom de canal par correspondance exacte puis par suffixe
+        # avant de retomber sur les deux premiers canaux disponibles.
+        resolved = []
+        for pick in picks:
+            if pick in raw.ch_names:
+                resolved.append(pick)
+                continue
+            match = next((ch for ch in raw.ch_names if ch.lower().endswith(pick.lower())), None)
+            if match:
+                resolved.append(match)
+        if not resolved:
+            resolved = raw.ch_names[:2]
+
+        raw = raw.copy().pick_channels(resolved)
         sfreq = float(raw.info["sfreq"])
         data = raw.get_data()  # (n_channels, n_samples)
         channels = list(raw.ch_names)
