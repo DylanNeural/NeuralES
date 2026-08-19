@@ -39,8 +39,8 @@ function onKey(e: KeyboardEvent) {
     // Piège à focus : empêche Tab/Shift+Tab de sortir de la boîte de dialogue.
     const els = focusableEls();
     if (els.length === 0) return;
-    const first = els[0];
-    const last = els[els.length - 1];
+    const first = els[0]!;
+    const last = els[els.length - 1]!;
     if (e.shiftKey && document.activeElement === first) {
       e.preventDefault();
       last.focus();
