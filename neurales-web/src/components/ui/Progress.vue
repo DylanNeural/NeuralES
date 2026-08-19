@@ -8,8 +8,9 @@ const props = withDefaults(
     max?: number;
     color?: "primary" | "cyan" | "emerald" | "violet" | "rose" | "amber";
     class?: string;
+    label?: string;
   }>(),
-  { value: 0, max: 100, color: "primary" }
+  { value: 0, max: 100, color: "primary", label: "Progression" }
 );
 
 const pct = computed(() => Math.min(100, Math.max(0, (props.value / props.max) * 100)));
@@ -30,6 +31,7 @@ const barColors = {
     role="progressbar"
     :aria-valuenow="value"
     :aria-valuemax="max"
+    :aria-label="label"
   >
     <div
       :class="cn('h-full rounded-full transition-all duration-500 ease-out', barColors[color])"

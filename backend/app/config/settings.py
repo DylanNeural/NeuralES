@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     # Database
     database_url: str = os.getenv(
         "DATABASE_URL",
-        "postgresql+psycopg2://neurales_user:jp8GJIrdC7L7S55N@localhost:5432/neurales"
-    )  # SQLAlchemy database DSN.
+        "postgresql+psycopg2://neurales_user:changeme@localhost:5432/neurales"
+    )  # SQLAlchemy database DSN. Default is a local-only placeholder; real credentials must come from DATABASE_URL.
     database_echo: bool = False  # Log SQL statements if True.
 
     # Auth (basic admin user + JWT)

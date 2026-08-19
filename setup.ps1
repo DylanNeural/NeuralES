@@ -1,4 +1,4 @@
-# NeuralES Setup Script
+﻿# NeuralES Setup Script
 # Installe tous les pré-requis et prépare l'environnement
 # Usage: .\setup.ps1
 
@@ -54,7 +54,7 @@ if (-not (Test-Path $backendVenv)) {
 
 # Installer dépendances backend
 Write-Host "  Installing Python dependencies..." -ForegroundColor Gray
-& "$backendVenv\Scripts\pip.exe" install -q -r "backend\requirements.txt" 2>$null
+& "$backendVenv\Scripts\pip.exe" install -q -r "backend\requirements.txt"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  ERROR: Failed to install Python packages" -ForegroundColor Red
     exit 1
@@ -66,7 +66,7 @@ Write-Host "[5/6] Setting up web environment..." -ForegroundColor Yellow
 Push-Location "neurales-web"
 if (-not (Test-Path "node_modules")) {
     Write-Host "  Installing npm dependencies..." -ForegroundColor Gray
-    npm install --silent 2>$null
+    npm install --silent
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  ERROR: Failed to install npm packages" -ForegroundColor Red
         exit 1
